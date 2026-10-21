@@ -82,6 +82,13 @@ NGX
 
 portal() {
   echo "== Portal: barra de usuário e cards por permissão"
+  local vitrine="$DIR/deploy/portal-vitrine.html"
+  if [ ! -f "$PORTAL" ] && [ -f "$vitrine" ]; then
+    $SUDO mkdir -p "$(dirname "$PORTAL")"
+    $SUDO cp "$vitrine" "$PORTAL"
+    echo "  PORTAL INSTALADO (vitrine integrada aos sistemas em $PORTAL)"
+    return
+  fi
   if grep -q "/acesso/portal.js" "$PORTAL"; then echo "  já existe"; return; fi
   grep -q "</body>" "$PORTAL" || { echo "  AVISO: </body> não encontrado; portal não alterado"; return; }
   $SUDO cp "$PORTAL" "$PORTAL.bak-acesso"
@@ -178,11 +185,13 @@ case "${1:-}" in
   instalar) servico; nginx_base; portal; echo "Próximo passo: bash $0 criar-admin" ;;
   criar-admin) cd "$DIR" && docker compose exec acesso python -m app.cli criar-admin ;;
   atualizar) servico ;;
+  atualizar-vitrine) $SUDO cp "$DIR/deploy/portal-vitrine.html" "$PORTAL" && echo "  VITRINE DO PORTAL ATUALIZADA ($PORTAL)" ;;
   importar) importar "${2:-}" ;;
+  sincronizar) importar "${2:-}" ;;
   proteger) proteger; status ;;
   bloquear) modo bloquear; status ;;
   observar) modo observar ;;
   desfazer) desfazer ;;
   status) status ;;
-  *) sed -n '2,12p' "$0"; exit 1 ;;
+  *) sed -n '2,13p' "$0"; exit 1 ;;
 esac

@@ -1,113 +1,639 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gestão de Acessos · Portal de Aplicações</title>
+  <meta name="description" content="Painel de controle central de acessos, usuários e permissões de sistemas.">
+  <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/acesso/estilo.css">
 </head>
+
 <body>
-  <header class="topo">
-    <h1>Gestão de Acessos</h1>
-    <div class="acoes">
-      <span class="suave" id="quem"></span>
-      <a class="botao" href="/">Portal</a>
-      <button type="button" onclick="sair()">Sair</button>
+
+  <!-- Barra Superior / Navbar -->
+  <header class="topo-painel">
+    <div class="topo-painel-brand">
+      <img src="/acesso/assets/videplast-brand.png" alt="Videplast" class="logotipo-topo">
+      <h1 id="titulo-painel">Gestão de Acessos</h1>
+    </div>
+    <div class="topo-acoes">
+      <span id="quem"></span>
+      <a class="botao secundario" href="/" title="Ir para a vitrine do portal">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        Portal
+      </a>
+      <button type="button" class="secundario" onclick="sair()" title="Encerrar sessão atual">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Sair
+      </button>
     </div>
   </header>
-  <main>
-    <div class="aviso oculto" id="aviso-modo">
-      <strong>Modo observação:</strong> ninguém é bloqueado ainda. Quem seria barrado aparece na aba Histórico.
-      Quando estiver tudo certo, o bloqueio é ligado no servidor.
-    </div>
 
-    <nav class="abas oculto" id="abas" role="tablist">
-      <button type="button" role="tab" data-aba="usuarios" aria-selected="true">Usuários</button>
-      <button type="button" role="tab" data-aba="sistemas">Sistemas</button>
-      <button type="button" role="tab" data-aba="historico">Histórico</button>
-      <button type="button" role="tab" data-aba="conta">Minha senha</button>
+  <main>
+    <!-- Navegação em Abas (disponível para administradores) -->
+    <nav class="abas oculto" id="abas" role="tablist" aria-label="Seções do painel">
+      <button type="button" role="tab" data-aba="usuarios" aria-selected="true" id="tab-usuarios">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Usuários &amp; Permissões</span>
+      </button>
+      <button type="button" role="tab" data-aba="sistemas" aria-selected="false" id="tab-sistemas">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+          </path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span>Sistemas Integrados</span>
+      </button>
+      <button type="button" role="tab" data-aba="historico" aria-selected="false" id="tab-historico">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span>Histórico de Auditoria</span>
+      </button>
+      <button type="button" role="tab" data-aba="conta" aria-selected="false" id="tab-conta">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 2l-2 2m-1.5 1.5L16 7l-2-2-1.5 1.5M10.5 9.5L9 11l-2-2-1.5 1.5"></path>
+          <circle cx="7.5" cy="16.5" r="4.5"></circle>
+          <path d="m11 13 8.5-8.5"></path>
+        </svg>
+        <span>Minha Conta</span>
+      </button>
     </nav>
 
-    <!-- Usuários: matriz usuário × sistema -->
-    <section id="aba-usuarios" class="oculto">
-      <div class="cartao">
-        <h2>Quem vê cada sistema</h2>
-        <p class="suave">Marque os sistemas de cada usuário. Salva na hora. Administradores veem todos.</p>
-        <input id="filtro" type="text" placeholder="Buscar por nome ou crachá" aria-label="Buscar usuário" style="max-width:320px;margin-bottom:8px">
-        <div class="tabela-rolagem"><table id="matriz"></table></div>
-        <div class="erro" id="erro-matriz" role="alert"></div>
-      </div>
-      <form class="cartao" id="form-importar" style="margin-top:16px">
-        <h2>Importar crachás</h2>
-        <p class="suave">Cadastra todo crachá da base do VisionStock (Supabase) que ainda não está aqui. O login é o número do crachá
-          e cada pessoa cria a própria senha no primeiro acesso. Pode rodar de novo para trazer crachás novos.</p>
-        <label>Já liberar estes sistemas para os importados (opcional)</label>
-        <div class="marcas" id="importar-sistemas"></div>
-        <div class="linha-botoes"><button class="principal" type="submit">Importar crachás</button></div>
-        <div class="erro" id="erro-importar" role="alert"></div>
-      </form>
-      <form class="cartao" id="form-novo" style="margin-top:16px">
-        <h2>Novo usuário</h2>
-        <div class="grade">
-          <div><label for="novo-usuario">Usuário (login)</label><input id="novo-usuario" type="text" autocapitalize="none" required></div>
-          <div><label for="novo-nome">Nome</label><input id="novo-nome" type="text" required></div>
-          <div><label for="novo-senha">Senha inicial (vazio = cria no 1º acesso)</label><input id="novo-senha" type="password" autocomplete="new-password" minlength="6"></div>
+    <!-- ── ABA: Usuários & Permissões ── -->
+    <section id="aba-usuarios" class="oculto" role="tabpanel" aria-labelledby="tab-usuarios">
+
+      <!-- Matriz de Permissões -->
+      <div class="cartao-painel">
+        <div class="secao-cabecalho">
+          <h2>Matriz de Acessos por Usuário</h2>
+          <p class="suave">Defina os sistemas autorizados para cada colaborador. Alterações são salvas em tempo real.
+          </p>
         </div>
-        <label>Sistemas</label>
-        <div class="marcas" id="novo-sistemas"></div>
-        <label class="marcas"><span><input type="checkbox" id="novo-admin"> Administrador (vê tudo e gerencia usuários)</span></label>
-        <div class="linha-botoes"><button class="principal" type="submit">Cadastrar</button></div>
-        <div class="erro" id="erro-novo" role="alert"></div>
-      </form>
+
+        <!-- Barra de Filtros e Busca -->
+        <div class="painel-filtros-container">
+          <!-- Linha 1: Pílulas / Chips Rápidos de Status -->
+          <div class="filtros-status" id="filtros-status" role="group" aria-label="Filtrar colaboradores por status">
+            <button type="button" class="filtro-chip ativo" data-status="todos">
+              Todos <span class="chip-contador" id="count-todos">0</span>
+            </button>
+            <button type="button" class="filtro-chip" data-status="ativos">
+              Ativos <span class="chip-contador" id="count-ativos">0</span>
+            </button>
+            <button type="button" class="filtro-chip" data-status="inativos">
+              Inativos <span class="chip-contador" id="count-inativos">0</span>
+            </button>
+            <button type="button" class="filtro-chip" data-status="pendentes">
+              1º Acesso Pendente <span class="chip-contador" id="count-pendentes">0</span>
+            </button>
+            <button type="button" class="filtro-chip" data-status="admins">
+              Admins <span class="chip-contador" id="count-admins">0</span>
+            </button>
+          </div>
+
+          <!-- Linha 2: Busca por texto + Seletor de Setor -->
+          <div class="barra-tabela">
+            <div class="grupo-filtros-campos">
+              <div class="campo-busca">
+                <span class="campo-busca-icone" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input id="filtro" type="text" placeholder="Filtrar por nome ou nº do crachá..."
+                  aria-label="Filtrar usuários">
+                <button type="button" id="limpar-filtro" class="campo-busca-limpar oculto"
+                  aria-label="Limpar filtro">×</button>
+              </div>
+
+              <div class="campo-seletor-setor">
+                <select id="filtro-setor" aria-label="Filtrar por setor">
+                  <option value="">Todos os Setores</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="acoes-topo-tabela" style="display:flex; align-items:center; gap:12px;">
+              <div class="contador-busca" id="contador-usuarios">
+                Carregando usuários...
+              </div>
+              <button type="button" class="secundario btn-sync-rapido" id="btn-sync-supabase" title="Buscar atualizações mais recentes da base de crachás no Supabase">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span>Sincronizar Supabase</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabela-rolagem">
+          <table id="matriz" aria-label="Matriz de permissões"></table>
+        </div>
+        <div class="erro" id="erro-matriz" role="alert"></div>
+
+        <!-- Barra de Paginação -->
+        <div class="barra-paginacao" id="barra-paginacao">
+          <div class="paginacao-resumo">
+            <span id="paginacao-info">Mostrando 0–0 de 0 colaboradores</span>
+            <div class="seletor-limite">
+              <label for="itens-por-pagina">Exibir:</label>
+              <select id="itens-por-pagina" aria-label="Colaboradores por página">
+                <option value="15">15</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="todos">Todos</option>
+              </select>
+            </div>
+          </div>
+          <div class="paginacao-nav" id="paginacao-nav" aria-label="Navegação por páginas">
+            <!-- Botões de página injetados via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Importação em Lote de Crachás -->
+      <div class="cartao-painel">
+        <form id="form-importar">
+          <div class="cabecalho-card-integracao">
+            <div class="cabecalho-texto-icone">
+              <div class="icone-destaque-card conexao-supabase">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div>
+                <h2>Importação em Lote de Crachás</h2>
+                <p class="suave">
+                  Importa colaboradores da base corporativa do Supabase. O login é o próprio número de crachá e os
+                  colaboradores definem sua senha no primeiro acesso.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bloco-selecao-sistemas">
+            <div class="cabecalho-bloco-selecao">
+              <label class="label-secao">Sistemas Liberados Inicialmente (Opcional)</label>
+              <div class="atalhos-selecao">
+                <button type="button" class="btn-link-atalho"
+                  onclick="selecionarTodosSistemas('importar-sistemas', true)">Marcar todos</button>
+                <span class="ponto-divisor">•</span>
+                <button type="button" class="btn-link-atalho"
+                  onclick="selecionarTodosSistemas('importar-sistemas', false)">Desmarcar</button>
+              </div>
+            </div>
+            <div class="sistemas-grid-selecao" id="importar-sistemas"></div>
+          </div>
+
+          <div class="linha-botoes">
+            <button class="principal botao-lg" type="submit" id="btn-importar">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Importar Crachás do Supabase</span>
+            </button>
+          </div>
+          <div class="erro" id="erro-importar" role="alert"></div>
+        </form>
+      </div>
+
+      <!-- Cadastro de Novo Usuário Avulso -->
+      <div class="cartao-painel">
+        <form id="form-novo">
+          <div class="cabecalho-card-integracao">
+            <div class="cabecalho-texto-icone">
+              <div class="icone-destaque-card cadastro-usuario">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+              </div>
+              <div>
+                <h2>Cadastrar Novo Colaborador</h2>
+                <p class="suave">Cadastre colaboradores avulsos ou administradores adicionais do sistema.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grade-formulario">
+            <div>
+              <label for="novo-usuario">Nº Crachá / Usuário *</label>
+              <input id="novo-usuario" type="text" autocapitalize="none" required placeholder="ex.: 12345"
+                autocomplete="off">
+            </div>
+            <div>
+              <label for="novo-nome">Nome Completo *</label>
+              <input id="novo-nome" type="text" required placeholder="Nome do colaborador" autocomplete="off">
+            </div>
+            <div>
+              <label for="novo-email">E-mail Corporativo</label>
+              <input id="novo-email" type="email" placeholder="colaborador@empresa.com.br" autocomplete="off">
+            </div>
+            <div>
+              <label for="novo-setor">Setor / Departamento</label>
+              <input id="novo-setor" type="text" placeholder="ex.: Extrusão, Contabilidade" autocomplete="off">
+            </div>
+            <div>
+              <label for="novo-senha">Senha Inicial (Opcional)</label>
+              <div class="campo-wrapper sem-icone-esq">
+                <input id="novo-senha" class="com-toggle" type="password" autocomplete="new-password" minlength="6"
+                  placeholder="Vazio = cria no 1º acesso">
+                <button type="button" class="botao-toggle-senha" id="toggle-novo-senha"
+                  aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bloco-selecao-sistemas">
+            <div class="cabecalho-bloco-selecao">
+              <label class="label-secao">Sistemas Autorizados</label>
+              <div class="atalhos-selecao">
+                <button type="button" class="btn-link-atalho"
+                  onclick="selecionarTodosSistemas('novo-sistemas', true)">Marcar todos</button>
+                <span class="ponto-divisor">•</span>
+                <button type="button" class="btn-link-atalho"
+                  onclick="selecionarTodosSistemas('novo-sistemas', false)">Desmarcar</button>
+              </div>
+            </div>
+            <div class="sistemas-grid-selecao" id="novo-sistemas"></div>
+          </div>
+
+          <div class="card-toggle-admin" id="card-toggle-admin">
+            <div class="toggle-admin-info">
+              <div class="toggle-admin-icone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <div class="toggle-admin-texto">
+                <strong>Perfil de Administrador</strong>
+                <p>Concede acesso total irrestrito a todos os sistemas presentes e futuros, além de gerenciar
+                  colaboradores e senhas.</p>
+              </div>
+            </div>
+            <label class="switch-toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="novo-admin">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <div class="linha-botoes">
+            <button class="principal botao-lg" type="submit" id="btn-cadastrar-usuario">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Salvar e Cadastrar Colaborador</span>
+            </button>
+            <button class="secundario botao-lg" type="reset" id="btn-limpar-usuario"
+              onclick="document.getElementById('card-toggle-admin')?.classList.remove('ativo'); selecionarTodosSistemas('novo-sistemas', false);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              <span>Limpar Formulário</span>
+            </button>
+          </div>
+          <div class="erro" id="erro-novo" role="alert"></div>
+        </form>
+      </div>
+
     </section>
 
-    <!-- Sistemas -->
-    <section id="aba-sistemas" class="oculto">
-      <div class="cartao">
-        <h2>Sistemas protegidos</h2>
-        <p class="suave">O código é o mesmo usado no Nginx do servidor (ex.: <code>auth_request /_acesso/rateios</code>). O caminho é o endereço do sistema no portal.
-          "Para todos" libera o sistema para qualquer usuário logado, sem precisar marcar um por um.</p>
-        <div class="tabela-rolagem"><table id="tabela-sistemas"></table></div>
+    <!-- ── ABA: Sistemas Integrados ── -->
+    <section id="aba-sistemas" class="oculto" role="tabpanel" aria-labelledby="tab-sistemas">
+
+      <div class="cartao-painel">
+        <div class="cabecalho-card-integracao">
+          <div class="cabecalho-texto-icone">
+            <div class="icone-destaque-card conexao-sistemas">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+            </div>
+            <div>
+              <h2>Sistemas Protegidos pelo Portal</h2>
+              <p class="suave">
+                Aplicações corporativas integradas ao proxy reverso do Nginx. Marque "Livre para Todos" para liberar o acesso a qualquer colaborador autenticado sem necessidade de permissão individual na matriz.
+              </p>
+            </div>
+          </div>
+          <div class="selo" id="badge-total-sistemas">
+            Carregando...
+          </div>
+        </div>
+
+        <div class="tabela-rolagem">
+          <table id="tabela-sistemas" class="tabela-sistemas-moderna" aria-label="Lista de sistemas protegidos"></table>
+        </div>
         <div class="erro" id="erro-sistemas" role="alert"></div>
       </div>
-      <form class="cartao" id="form-sistema" style="margin-top:16px">
-        <h2>Novo sistema</h2>
-        <div class="grade">
-          <div><label for="sis-slug">Código</label><input id="sis-slug" type="text" placeholder="ex.: compras" required></div>
-          <div><label for="sis-nome">Nome</label><input id="sis-nome" type="text" required></div>
-          <div><label for="sis-caminho">Caminho</label><input id="sis-caminho" type="text" placeholder="/compras/" required></div>
-          <div><label for="sis-ordem">Ordem</label><input id="sis-ordem" type="number" value="10"></div>
+
+      <!-- Cadastro de Novo Sistema -->
+      <div class="cartao-painel">
+        <form id="form-sistema">
+          <div class="cabecalho-card-integracao">
+            <div class="cabecalho-texto-icone">
+              <div class="icone-destaque-card novo-sistema">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <h2>Integrar Nova Aplicação</h2>
+                <p class="suave">Cadastre um novo serviço web para controle de acesso unificado no Nginx.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grade-formulario">
+            <div>
+              <label for="sis-slug">Código Identificador (Slug) *</label>
+              <input id="sis-slug" type="text" placeholder="ex.: almoxarifado" required
+                pattern="^[a-z0-9][a-z0-9-]{0,39}$">
+            </div>
+            <div>
+              <label for="sis-nome">Nome da Aplicação *</label>
+              <input id="sis-nome" type="text" required placeholder="ex.: VisionStock (Almox)">
+            </div>
+            <div>
+              <label for="sis-caminho">Caminho / URL no Servidor *</label>
+              <input id="sis-caminho" type="text" placeholder="/almoxarifado/" required>
+            </div>
+            <div>
+              <label for="sis-ordem">Ordem de Exibição</label>
+              <input id="sis-ordem" type="number" value="10">
+            </div>
+          </div>
+
+          <div class="card-toggle-admin card-toggle-aberto" id="card-toggle-aberto">
+            <div class="toggle-admin-info">
+              <div class="toggle-admin-icone icone-aberto">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </div>
+              <div class="toggle-admin-texto">
+                <strong>Acesso Livre para Todos os Colaboradores</strong>
+                <p>Quando ativado, qualquer colaborador autenticado com crachá terá acesso imediato sem precisar de liberação individual na matriz.</p>
+              </div>
+            </div>
+            <label class="switch-toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="sis-aberto">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <div class="linha-botoes">
+            <button class="principal botao-lg" type="submit" id="btn-cadastrar-sistema">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Salvar e Integrar Aplicação</span>
+            </button>
+            <button class="secundario botao-lg" type="reset" id="btn-limpar-sistema"
+              onclick="document.getElementById('card-toggle-aberto')?.classList.remove('ativo');">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              <span>Limpar</span>
+            </button>
+          </div>
+          <div class="erro" id="erro-sistema" role="alert"></div>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- ── ABA: Histórico de Auditoria ── -->
+    <section id="aba-historico" class="oculto" role="tabpanel" aria-labelledby="tab-historico">
+      <div class="cartao-painel">
+        <div class="cabecalho-card-integracao">
+          <div class="cabecalho-texto-icone">
+            <div class="icone-destaque-card auditoria-icone">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h2>Trilha de Auditoria & Eventos</h2>
+              <p class="suave">Registro cronológico detalhado de acessos, alterações de permissões e tentativas de login no portal.</p>
+            </div>
+          </div>
+          <div class="selo sucesso">
+            <span class="ponto-status-ativo"></span> Monitoramento em Tempo Real
+          </div>
         </div>
-        <div class="linha-botoes"><button class="principal" type="submit">Incluir</button></div>
-        <div class="erro" id="erro-sistema" role="alert"></div>
-      </form>
-    </section>
 
-    <!-- Histórico -->
-    <section id="aba-historico" class="oculto">
-      <div class="cartao">
-        <h2>Histórico</h2>
-        <p class="suave">Logins, alterações e acessos negados (os 300 mais recentes).</p>
-        <div class="tabela-rolagem"><table id="tabela-eventos"></table></div>
+        <!-- Filtros por tipo de evento -->
+        <div class="filtros-chips-wrapper" id="filtros-eventos-tipo">
+          <button type="button" class="filtro-chip-evento ativo" data-tipo="">Todos os Eventos</button>
+          <button type="button" class="filtro-chip-evento" data-tipo="login">Logins</button>
+          <button type="button" class="filtro-chip-evento" data-tipo="atualizou_permissoes">Permissões</button>
+          <button type="button" class="filtro-chip-evento" data-tipo="usuario">Cadastros</button>
+          <button type="button" class="filtro-chip-evento" data-tipo="negado">Bloqueios & Alertas</button>
+        </div>
+
+        <div class="barra-tabela">
+          <div class="campo-busca">
+            <span class="campo-busca-icone" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input id="filtro-eventos" type="text" placeholder="Filtrar eventos por crachá, tipo ou descrição..."
+              aria-label="Filtrar eventos">
+          </div>
+          <div class="contador-busca" id="contador-eventos">Carregando eventos...</div>
+        </div>
+
+        <div class="tabela-rolagem">
+          <table id="tabela-eventos" class="tabela-eventos-moderna" aria-label="Histórico de eventos"></table>
+        </div>
       </div>
     </section>
 
-    <!-- Conta: também é o que um usuário comum vê -->
-    <section id="aba-conta" class="oculto">
-      <div class="cartao estreito" id="meus-sistemas-cartao" style="margin-bottom:16px">
-        <h2>Seus sistemas</h2>
-        <div class="lista-sistemas" id="meus-sistemas"></div>
+    <!-- ── ABA: Minha Conta ── -->
+    <section id="aba-conta" class="oculto" role="tabpanel" aria-labelledby="tab-conta">
+      <div class="grade-minha-conta">
+
+        <!-- Coluna Esquerda: Perfil e Aplicações Autorizadas -->
+        <div class="coluna-conta-esquerda">
+
+          <!-- Cartão de Perfil do Colaborador Conectado -->
+          <div class="cartao-painel card-perfil-usuario">
+            <div class="perfil-topo">
+              <div class="perfil-avatar" id="conta-avatar">--</div>
+              <div class="perfil-dados">
+                <div class="perfil-linha-nome">
+                  <h2 id="conta-nome">Carregando colaborador...</h2>
+                  <span class="selo-admin-tag oculto" id="conta-selo-admin">Administrador</span>
+                </div>
+                <div class="perfil-linha-detalhes">
+                  <span class="cracha-tag" id="conta-cracha">#---</span>
+                  <span class="divisor-ponto">•</span>
+                  <span class="setor-tag" id="conta-setor">Setor Geral</span>
+                  <span class="divisor-ponto">•</span>
+                  <span class="unidade-tag" id="conta-unidade">Unidade 1001</span>
+                </div>
+                <p class="perfil-email" id="conta-email">---</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Launcher de Aplicações Liberadas -->
+          <div class="cartao-painel" id="meus-sistemas-cartao">
+            <div class="cabecalho-card-integracao">
+              <div class="cabecalho-texto-icone">
+                <div class="icone-destaque-card conexao-supabase">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                </div>
+                <div>
+                  <h2>Aplicações Autorizadas</h2>
+                  <p class="suave">Acesso direto às ferramentas integradas ao seu crachá corporativo:</p>
+                </div>
+              </div>
+            </div>
+            <div class="grade-launcher-sistemas" id="meus-sistemas"></div>
+          </div>
+
+        </div>
+
+        <!-- Coluna Direita: Alteração de Senha & Segurança -->
+        <div class="coluna-conta-direita">
+          <div class="cartao-painel">
+            <form id="form-senha">
+              <div class="cabecalho-card-integracao">
+                <div class="cabecalho-texto-icone">
+                  <div class="icone-destaque-card senha-icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2>Alterar Minha Senha</h2>
+                    <p class="suave">Defina uma nova senha pessoal de segurança para o seu crachá.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label for="senha-atual">Senha Atual *</label>
+                <div class="campo-wrapper sem-icone-esq">
+                  <input id="senha-atual" class="com-toggle" type="password" autocomplete="current-password" required
+                    placeholder="Digite sua senha atual">
+                  <button type="button" class="botao-toggle-senha" id="toggle-senha-atual"
+                    aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+                </div>
+              </div>
+
+              <div>
+                <label for="senha-nova">Nova Senha *</label>
+                <div class="campo-wrapper sem-icone-esq">
+                  <input id="senha-nova" class="com-toggle" type="password" autocomplete="new-password" minlength="6"
+                    required placeholder="Digite a nova senha">
+                  <button type="button" class="botao-toggle-senha" id="toggle-senha-nova"
+                    aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+                </div>
+              </div>
+
+              <div class="regras-senha">
+                <div class="label-secao" style="margin-bottom:6px;">Requisitos de Segurança:</div>
+                <ul>
+                  <li id="req-tamanho">Pelo menos 6 caracteres</li>
+                  <li id="req-diferente">Diferente do seu número de crachá</li>
+                </ul>
+              </div>
+
+              <div class="linha-botoes" style="margin-top:20px;">
+                <button class="principal botao-lg" type="submit" id="btn-salvar-minha-senha" style="width:100%;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  <span>Salvar Nova Senha</span>
+                </button>
+              </div>
+              <div class="erro" id="erro-senha" role="alert"></div>
+            </form>
+          </div>
+        </div>
+
       </div>
-      <form class="cartao estreito" id="form-senha">
-        <h2>Trocar minha senha</h2>
-        <label for="senha-atual">Senha atual</label><input id="senha-atual" type="password" autocomplete="current-password" required>
-        <label for="senha-nova">Nova senha</label><input id="senha-nova" type="password" autocomplete="new-password" minlength="6" required>
-        <button class="principal largo" type="submit">Salvar</button>
-        <div class="erro" id="erro-senha" role="alert"></div>
-      </form>
     </section>
+
   </main>
+
   <script src="/acesso/comum.js"></script>
   <script src="/acesso/painel.js"></script>
 </body>
+
 </html>

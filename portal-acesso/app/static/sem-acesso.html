@@ -3,25 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sem acesso · Portal de Aplicações</title>
+  <title>Acesso Não Liberado · Portal de Aplicações</title>
+  <meta name="description" content="Aviso de restrição de permissão de acesso ao sistema solicitado.">
+  <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/acesso/estilo.css">
 </head>
 <body>
   <div class="centro">
-    <div class="cartao estreito">
-      <h1>Sem acesso a este sistema</h1>
-      <p class="suave" id="quem">Seu usuário não tem permissão para abrir esta página. Peça a liberação ao administrador.</p>
-      <div class="linha-botoes">
-        <a class="botao" href="/">Voltar ao portal</a>
-        <button type="button" onclick="sair()">Entrar com outro usuário</button>
+    <div class="cartao estreito" style="text-align: center;">
+      <img src="/acesso/assets/videplast-brand.png" alt="Videplast" class="logotipo">
+      
+      <div class="icone-bloqueio" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          <line x1="8" y1="15" x2="8" y2="15.01"></line>
+          <line x1="16" y1="15" x2="16" y2="15.01"></line>
+        </svg>
+      </div>
+
+      <h1>Acesso Não Liberado</h1>
+      
+      <p class="suave" id="mensagem-sem-acesso" style="margin: 14px 0 28px; line-height: 1.6;">
+        Seu usuário não possui permissão para abrir esta aplicação.<br>
+        Solicite a liberação ao administrador do sistema.
+      </p>
+
+      <div class="linha-botoes" style="justify-content: center;">
+        <a class="botao secundario" href="/">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Voltar ao Portal
+        </a>
+        <button type="button" class="principal" onclick="sair()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
+          </svg>
+          Trocar Usuário
+        </button>
       </div>
     </div>
   </div>
+
   <script src="/acesso/comum.js"></script>
   <script>
     api('/api/eu').then((eu) => {
-      document.getElementById('quem').textContent =
-        `Você entrou como ${eu.nome} (${eu.usuario}) e não tem permissão para abrir esta página. Peça a liberação ao administrador.`;
+      document.getElementById('mensagem-sem-acesso').innerHTML =
+        `Você entrou como <strong>${eu.nome}</strong> (${eu.usuario}), mas este perfil não tem permissão para abrir esta aplicação.<br><br>` +
+        `Para solicitar acesso, entre em contato com o administrador de TI ou gestor da área.`;
     }).catch(() => {});
   </script>
 </body>

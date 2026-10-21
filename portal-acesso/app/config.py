@@ -1,6 +1,21 @@
 """Configuração do Portal de Acesso lida de variáveis de ambiente (único lugar que lê o ambiente)."""
 import os
 
+# Carrega automaticamente o .env local em desenvolvimento se presente
+env_local = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+if os.path.isfile(env_local):
+    try:
+        with open(env_local, "r", encoding="utf-8") as f:
+            for linha in f:
+                linha = linha.strip()
+                if linha and not linha.startswith("#") and "=" in linha:
+                    k, v = linha.split("=", 1)
+                    k, v = k.strip(), v.strip().strip('"').strip("'")
+                    if k and k not in os.environ:
+                        os.environ[k] = v
+    except Exception:
+        pass
+
 MODOS = ("observar", "bloquear")
 
 

@@ -4,42 +4,139 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Entrar · Portal de Aplicações</title>
+  <meta name="description" content="Autenticação centralizada de acesso às aplicações industriais da Videplast.">
+  <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/acesso/estilo.css">
 </head>
 <body>
   <div class="centro">
-    <form id="form" class="cartao estreito" autocomplete="on">
+    <form id="form" class="cartao estreito" autocomplete="on" novalidate>
+      <img src="/acesso/assets/videplast-brand.png" alt="Videplast" class="logotipo">
+      
       <h1>Portal de Aplicações</h1>
-      <p class="suave" id="dica">Digite o número do seu crachá. Se for o seu primeiro acesso, você vai criar uma senha no próximo passo.</p>
-      <label for="usuario">Nº do crachá ou usuário</label>
-      <input id="usuario" type="text" inputmode="text" autocomplete="username" autocapitalize="none" required autofocus>
-      <button type="button" class="link oculto" id="trocar">Não é você? Trocar crachá</button>
+      <p class="suave" id="dica">Informe o número do seu crachá ou e-mail para continuar.</p>
+
+      <!-- Campo Crachá / E-mail -->
+      <label for="usuario">Nº do crachá ou e-mail corporativo</label>
+      <input id="usuario" type="text" inputmode="text" autocomplete="username"
+             autocapitalize="none" required autofocus placeholder="Digite seu crachá (ex.: 12345) ou e-mail corporativo" spellcheck="false">
+
+      <!-- Botão para voltar / trocar crachá -->
+      <div style="margin-top: 8px;">
+        <button type="button" class="link oculto" id="trocar">
+          ← Não é você? Trocar usuário
+        </button>
+      </div>
+
+      <!-- Bloco de Senha Existente -->
       <div id="bloco-senha" class="oculto">
         <label for="senha">Senha</label>
-        <input id="senha" type="password" autocomplete="current-password">
+        <div class="campo-wrapper">
+          <input id="senha" class="com-toggle" type="password" autocomplete="current-password" placeholder="Digite sua senha">
+          <button type="button" class="botao-toggle-senha" id="toggle-senha" aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+        </div>
       </div>
+
+      <!-- Bloco de Criação de Senha (Primeiro Acesso) -->
       <div id="bloco-nova" class="oculto">
-        <p class="ok" style="margin:12px 0 0">Primeiro acesso: crie a sua senha (mínimo 6 caracteres). Você vai usar essa senha nas próximas vezes.</p>
-        <label for="nova">Nova senha</label>
-        <input id="nova" type="password" autocomplete="new-password" minlength="6">
-        <label for="repetir">Repita a senha</label>
-        <input id="repetir" type="password" autocomplete="new-password" minlength="6">
+        <div class="ok" style="margin-top:14px; text-align: left; display:flex; align-items:center; gap:10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:#059669; flex-shrink:0;">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <div>
+            <strong>Primeiro acesso detectado!</strong><br>
+            <span class="suave" style="color:var(--text); font-size:0.84rem;">Crie sua senha pessoal e confirme seu e-mail.</span>
+          </div>
+        </div>
+
+        <!-- Campo E-mail Corporativo (solicitado caso ainda não esteja no cadastro) -->
+        <div id="bloco-email" class="oculto" style="margin-top: 14px;">
+          <label for="email">E-mail corporativo</label>
+          <input id="email" type="email" autocomplete="email" placeholder="ex.: nome.sobrenome@empresa.com.br" spellcheck="false">
+        </div>
+
+        <label for="nova" style="margin-top: 14px;">Nova senha</label>
+        <div class="campo-wrapper">
+          <input id="nova" class="com-toggle" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres">
+          <button type="button" class="botao-toggle-senha" id="toggle-nova" aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+        </div>
+
+        <label for="repetir">Confirme a nova senha</label>
+        <div class="campo-wrapper">
+          <input id="repetir" class="com-toggle" type="password" autocomplete="new-password" minlength="6" placeholder="Repita a senha">
+          <button type="button" class="botao-toggle-senha" id="toggle-repetir" aria-label="Mostrar ou ocultar senha" tabindex="-1"></button>
+        </div>
+
+        <!-- Validação visual das regras de senha -->
+        <div class="regras-senha" id="regras-senha">
+          <span style="font-weight:600; color:var(--text-muted); font-size:0.78rem; text-transform:uppercase;">Requisitos:</span>
+          <ul>
+            <li id="regra-tam">Mínimo de 6 caracteres</li>
+            <li id="regra-confere">As senhas conferem</li>
+          </ul>
+        </div>
       </div>
-      <button class="principal largo" type="submit" id="botao">Continuar</button>
-      <div class="erro" id="erro" role="alert"></div>
+
+      <!-- Botão de Ação -->
+      <button class="principal largo" type="submit" id="botao">
+        <span id="botao-texto">Continuar</span>
+      </button>
+
+      <!-- Atalho de Demonstração para Pular Login -->
+      <a class="botao secundario largo" href="/acesso/" style="margin-top: 12px; font-size: 0.9rem; text-decoration: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Pular Login e Ver Tela Principal</span>
+      </a>
+
+      <!-- Mensagens de Erro -->
+      <div class="erro" id="erro" role="alert" aria-live="assertive"></div>
     </form>
   </div>
+
   <script src="/acesso/comum.js"></script>
   <script>
-    // "volta" é tudo depois de "volta=" (o Nginx manda o endereço original sem codificar)
     const busca = location.search;
     const pos = busca.indexOf('volta=');
     let volta = pos >= 0 ? busca.slice(pos + 6) : '/';
-    try { volta = decodeURIComponent(volta); } catch { /* já estava decodificado */ }
+    try { volta = decodeURIComponent(volta); } catch { /* valor já estava decodificado */ }
 
-    // Passos: "cracha" (só o número) → "senha" (quem já tem senha) ou "criar" (primeiro acesso)
     let passo = 'cracha';
     const campo = (id) => document.getElementById(id);
+
+    // Inicializa os botões de mostrar/ocultar senha
+    configurarAlternadorSenha(campo('senha'), campo('toggle-senha'));
+    configurarAlternadorSenha(campo('nova'), campo('toggle-nova'));
+    configurarAlternadorSenha(campo('repetir'), campo('toggle-repetir'));
+
+    // Validação dinâmica dos requisitos de senha
+    function checarRequisitosSenha() {
+      const vNova = campo('nova').value;
+      const vRepetir = campo('repetir').value;
+      const tamOk = vNova.length >= 6;
+      const confereOk = tamOk && vNova === vRepetir;
+
+      campo('regra-tam').classList.toggle('atendido', tamOk);
+      campo('regra-confere').classList.toggle('atendido', confereOk);
+    }
+
+    campo('nova').addEventListener('input', checarRequisitosSenha);
+    campo('repetir').addEventListener('input', checarRequisitosSenha);
+
+    function definirCarregando(carregando, textoPadrao) {
+      const btn = campo('botao');
+      const txt = campo('botao-texto');
+      btn.disabled = carregando;
+      if (carregando) {
+        txt.innerHTML = '<span class="spinner-btn" aria-hidden="true"></span> Aguarde...';
+      } else {
+        txt.textContent = textoPadrao;
+      }
+    }
+
+    let dadosIdentificacao = null;
 
     function irPara(novo) {
       passo = novo;
@@ -47,21 +144,40 @@
       mostra('bloco-senha', novo === 'senha');
       mostra('bloco-nova', novo === 'criar');
       mostra('trocar', novo !== 'cracha');
+
       campo('usuario').readOnly = novo !== 'cracha';
       campo('senha').required = novo === 'senha';
       campo('nova').required = campo('repetir').required = novo === 'criar';
+
+      if (novo === 'criar') {
+        const precisaPedirEmail = dadosIdentificacao && dadosIdentificacao.pede_email;
+        mostra('bloco-email', precisaPedirEmail);
+        campo('email').required = Boolean(precisaPedirEmail);
+        if (dadosIdentificacao && dadosIdentificacao.email_existente) {
+          campo('email').value = dadosIdentificacao.email_existente;
+        }
+      }
+
+      const saudacaoNome = (dadosIdentificacao && dadosIdentificacao.nome) ? `Olá, ${dadosIdentificacao.nome}! ` : '';
       campo('dica').textContent = {
-        cracha: 'Digite o número do seu crachá. Se for o seu primeiro acesso, você vai criar uma senha no próximo passo.',
-        senha: 'Digite a sua senha.',
-        criar: 'Bem-vindo! Este é o seu primeiro acesso.',
+        cracha: 'Informe o número do seu crachá ou e-mail corporativo para continuar.',
+        senha: `${saudacaoNome}Confirme sua identidade com sua senha cadastrada.`,
+        criar: `${saudacaoNome}Seja bem-vindo! Conclua seu cadastro criando sua senha de acesso.`,
       }[novo];
-      campo('botao').textContent = { cracha: 'Continuar', senha: 'Entrar', criar: 'Salvar senha e entrar' }[novo];
+
+      const textoBotao = { cracha: 'Continuar', senha: 'Entrar', criar: 'Salvar senha e entrar' }[novo];
+      campo('botao-texto').textContent = textoBotao;
+      campo('botao').disabled = false;
       campo('erro').textContent = '';
-      campo({ cracha: 'usuario', senha: 'senha', criar: 'nova' }[novo]).focus();
+
+      const alvoFoco = { cracha: 'usuario', senha: 'senha', criar: (dadosIdentificacao && dadosIdentificacao.pede_email) ? 'email' : 'nova' }[novo];
+      setTimeout(() => campo(alvoFoco).focus(), 80);
     }
 
     campo('trocar').addEventListener('click', () => {
-      campo('senha').value = campo('nova').value = campo('repetir').value = '';
+      campo('senha').value = campo('nova').value = campo('repetir').value = campo('email').value = '';
+      dadosIdentificacao = null;
+      checarRequisitosSenha();
       irPara('cracha');
     });
 
@@ -70,25 +186,63 @@
       const erro = campo('erro');
       erro.textContent = '';
       const usuario = campo('usuario').value.trim();
-      if (passo === 'criar' && campo('nova').value !== campo('repetir').value) {
-        erro.textContent = 'As senhas não conferem.';
+
+      if (!usuario) {
+        erro.textContent = 'Informe o número do seu crachá ou e-mail.';
+        campo('usuario').focus();
         return;
       }
-      campo('botao').disabled = true;
+
+      if (passo === 'criar') {
+        const nova = campo('nova').value;
+        const repetir = campo('repetir').value;
+        const emailEl = campo('email');
+        if (dadosIdentificacao && dadosIdentificacao.pede_email && !emailEl.value.trim()) {
+          erro.textContent = 'Por favor, informe seu e-mail corporativo.';
+          emailEl.focus();
+          return;
+        }
+        if (nova.length < 6) {
+          erro.textContent = 'A senha deve conter no mínimo 6 caracteres.';
+          campo('nova').focus();
+          return;
+        }
+        if (nova !== repetir) {
+          erro.textContent = 'As senhas informadas não conferem.';
+          campo('repetir').focus();
+          return;
+        }
+      }
+
+      const textoOriginal = campo('botao-texto').textContent;
+      definirCarregando(true, textoOriginal);
+
       try {
         if (passo === 'cracha') {
           const r = await api('/api/identificar', { method: 'POST', body: { usuario } });
-          campo('botao').disabled = false;
+          dadosIdentificacao = r;
+          definirCarregando(false, textoOriginal);
           irPara(r.criar_senha ? 'criar' : 'senha');
           return;
         }
+
+        const corpo = passo === 'criar'
+          ? { usuario, senha: campo('nova').value, email: campo('email').value.trim(), volta }
+          : { usuario, senha: campo('senha').value, volta };
+
         const r = passo === 'criar'
-          ? await api('/api/primeiro-acesso', { method: 'POST', body: { usuario, senha: campo('nova').value, volta } })
-          : await api('/api/entrar', { method: 'POST', body: { usuario, senha: campo('senha').value, volta } });
+          ? await api('/api/primeiro-acesso', { method: 'POST', body: corpo })
+          : await api('/api/entrar', { method: 'POST', body: corpo });
+
+        // Redirecionamento seguro pós-autenticação
         location.href = r.volta;
       } catch (e) {
-        campo('botao').disabled = false;
-        if (e.status === 409 && e.dados && e.dados.criar_senha) { irPara('criar'); return; }
+        definirCarregando(false, textoOriginal);
+        if (e.status === 409 && e.dados && e.dados.criar_senha) {
+          irPara('criar');
+          erro.textContent = 'Primeiro acesso detectado: por favor, crie sua senha.';
+          return;
+        }
         erro.textContent = e.message;
       }
     });

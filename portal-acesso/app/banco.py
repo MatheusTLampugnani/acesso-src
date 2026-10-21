@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha_hash TEXT NOT NULL,
     admin INTEGER NOT NULL DEFAULT 0,
     ativo INTEGER NOT NULL DEFAULT 1,
+    email TEXT COLLATE NOCASE,
+    setor TEXT,
+    unidade INTEGER,
     criado_em TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sistemas (
@@ -43,11 +46,11 @@ CREATE TABLE IF NOT EXISTS eventos (
 );
 """
 
-# Sistemas que já rodam no servidor; o administrador pode incluir outros pelo painel
+# Sistemas que rodam no servidor Linux; o administrador pode incluir outros pelo painel
 SISTEMAS_INICIAIS = [
     ("bobinas", "Inventário de Bobinas", "/bobinas/", 1),
-    ("imobilizados", "Imobilizados", "/imobilizados/", 2),
-    ("visionstock", "VisionStock (Almoxarifado)", "/visionstock/", 3),
+    ("imobilizados", "Controle de Imobilizados", "/imobilizados/", 2),
+    ("visionstock", "VisionStock (Almox)", "/visionstock/", 3),
     ("rateios", "Rateios", "/rateios/", 4),
     ("terceirizados", "Portaria de Terceiros", "/terceirizados/", 5),
 ]
@@ -76,19 +79,32 @@ def iniciar() -> None:
     with conexao() as con:
         con.execute("PRAGMA journal_mode = WAL")
         con.executescript(ESQUEMA)
-        # Bancos criados antes da opção "liberado para todos"
-        colunas = {r[1] for r in con.execute("PRAGMA table_info(sistemas)")}
-        if "aberto" not in colunas:
+
+        colunas_sis = {r[1] for r in con.execute("PRAGMA table_info(sistemas)")}
+        if "aberto" not in colunas_sis:
             con.execute("ALTER TABLE sistemas ADD COLUMN aberto INTEGER NOT NULL DEFAULT 0")
-        if con.execute("SELECT COUNT(*) FROM sistemas").fetchone()[0] == 0:
-            con.executemany("INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?)", SISTEMAS_INICIAIS)
+
+        colunas_usr = {r[1] for r in con.execute("PRAGMA table_info(usuarios)")}
+        if "email" not in colunas_usr:
+            con.execute("ALTER TABLE usuarios ADD COLUMN email TEXT COLLATE NOCASE")
+        if "setor" not in colunas_usr:
+            con.execute("ALTER TABLE usuarios ADD COLUMN setor TEXT")
+        if "unidade" not in colunas_usr:
+            con.execute("ALTER TABLE usuarios ADD COLUMN unidade INTEGER")
+
+        for s_slug, s_nome, s_caminho, s_ordem in SISTEMAS_INICIAIS:
+            con.execute(
+                "INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(slug) DO UPDATE SET caminho = excluded.caminho WHERE sistemas.caminho != excluded.caminho",
+                (s_slug, s_nome, s_caminho, s_ordem),
+            )
+
 
 
 def registrar(con, usuario: str | None, tipo: str, detalhe: str = "") -> None:
     con.execute(
         "INSERT INTO eventos (quando, usuario, tipo, detalhe) VALUES (?, ?, ?, ?)", (agora(), usuario, tipo, detalhe)
     )
-    # Mantém o histórico enxuto
     con.execute("DELETE FROM eventos WHERE id <= (SELECT MAX(id) FROM eventos) - 5000")
 
 
@@ -98,12 +114,16 @@ def _usuario_dict(con, linha) -> dict:
     sistemas = [r[0] for r in con.execute(
         "SELECT sistema_slug FROM permissoes WHERE usuario_id = ? ORDER BY sistema_slug", (linha["id"],)
     )]
+    chaves = linha.keys() if hasattr(linha, "keys") else []
     return {
         "id": linha["id"],
         "usuario": linha["usuario"],
         "nome": linha["nome"],
         "admin": bool(linha["admin"]),
         "ativo": bool(linha["ativo"]),
+        "email": linha["email"] if "email" in chaves and linha["email"] else "",
+        "setor": linha["setor"] if "setor" in chaves and linha["setor"] else "",
+        "unidade": linha["unidade"] if "unidade" in chaves else None,
         # Sem senha: a pessoa cria a própria senha no primeiro acesso
         "senha_pendente": linha["senha_hash"] == "",
         "criado_em": linha["criado_em"],
@@ -120,29 +140,71 @@ def buscar_usuario(con, usuario_id: int) -> dict | None:
     return _usuario_dict(con, linha) if linha else None
 
 
-def buscar_por_login(con, usuario: str):
-    return con.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario.strip(),)).fetchone()
+def buscar_por_login(con, identificador: str):
+    identificador = (identificador or "").strip()
+    if not identificador:
+        return None
+    return con.execute(
+        "SELECT * FROM usuarios WHERE usuario = ? COLLATE NOCASE OR email = ? COLLATE NOCASE",
+        (identificador, identificador),
+    ).fetchone()
 
 
-def criar_usuario(con, usuario: str, nome: str, senha_hash: str, admin: bool, sistemas: list[str]) -> int:
+def criar_usuario(
+    con, usuario: str, nome: str, senha_hash: str, admin: bool, sistemas: list[str],
+    email: str = "", setor: str = "", unidade: int | None = None,
+) -> int:
     cur = con.execute(
-        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)",
-        (usuario.strip(), nome.strip(), senha_hash, int(admin), agora()),
+        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, email, setor, unidade, criado_em) "
+        "VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)",
+        (usuario.strip(), nome.strip(), senha_hash, int(admin), email.strip().lower(), setor.strip(), unidade, agora()),
     )
     definir_sistemas(con, cur.lastrowid, sistemas)
     return cur.lastrowid
 
 
-def importar_crachas(con, crachas: list[tuple[str, str]], sistemas: list[str]) -> dict:
-    """Cria um usuário (login = nº do crachá, sem senha) para cada crachá que ainda não existe."""
-    novos, existentes = 0, 0
-    for cracha, nome in crachas:
-        if buscar_por_login(con, cracha):
-            existentes += 1
-            continue
-        criar_usuario(con, cracha, nome or f"Crachá {cracha}", "", False, sistemas)
-        novos += 1
-    return {"novos": novos, "existentes": existentes}
+def importar_crachas(con, crachas: list, sistemas: list[str]) -> dict:
+    """Cria ou atualiza usuários no banco local a partir da base do Supabase."""
+    novos, atualizados = 0, 0
+    for item in crachas:
+        if isinstance(item, dict):
+            cracha = item["cracha"]
+            nome = item.get("nome") or f"Crachá {cracha}"
+            setor = item.get("setor") or ""
+            unidade = item.get("unidade")
+            admin = item.get("admin", False)
+            email = item.get("email") or ""
+            senha_hash = item.get("senha_hash") or ""
+        else:
+            cracha, nome = item
+            setor, unidade, admin, email, senha_hash = "", None, False, "", ""
+
+        existente = buscar_por_login(con, cracha)
+        if existente:
+            nova_senha = senha_hash if (senha_hash and not existente["senha_hash"]) else existente["senha_hash"]
+            con.execute(
+                "UPDATE usuarios SET nome = ?, admin = ?, email = COALESCE(NULLIF(?, ''), email), "
+                "setor = COALESCE(NULLIF(?, ''), setor), unidade = COALESCE(?, unidade), senha_hash = ? WHERE id = ?",
+                (nome, int(admin or existente["admin"]), email, setor, unidade, nova_senha, existente["id"]),
+            )
+            atualizados += 1
+        else:
+            criar_usuario(con, cracha, nome, senha_hash, admin, sistemas, email=email, setor=setor, unidade=unidade)
+            novos += 1
+    return {"novos": novos, "existentes": atualizados}
+
+
+def sincronizar_com_supabase(con, sistemas: list[str] | None = None) -> dict:
+    """Busca a base completa de colaboradores do Supabase e sincroniza com o banco local."""
+    from .crachas import buscar_crachas
+    crachas = buscar_crachas()
+    resultado = importar_crachas(con, crachas, sistemas or [])
+    registrar(
+        con, "sistema", "sincronizou_supabase",
+        f"{resultado['novos']} novos cadastrados, {resultado['existentes']} atualizados da base Supabase",
+    )
+    return resultado
+
 
 
 def definir_sistemas(con, usuario_id: int, sistemas: list[str]) -> None:
