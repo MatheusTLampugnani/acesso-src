@@ -217,3 +217,50 @@ def test_migra_banco_antigo_sem_coluna_aberto(cria_cliente, tmp_path):
     with banco.conexao() as con:
         assert all(s["aberto"] is False for s in banco.listar_sistemas(con))
     assert entrar(c).status_code == 200
+
+
+def test_criar_usuario_cadastra_cracha_no_supabase(cria_cliente, monkeypatch):
+    c = cria_cliente()
+    import app.rotas
+    chamadas = []
+    monkeypatch.setattr(app.rotas, "garantir_cracha", lambda cracha, nome: chamadas.append((cracha, nome)) or True)
+    entrar(c)
+    r = c.post("/acesso/api/usuarios", json={"usuario": "13969", "nome": "Maria Souza"}, headers=H)
+    assert r.status_code == 200 and "aviso" not in r.json()
+    assert chamadas == [("13969", "Maria Souza")]
+    eventos = c.get("/acesso/api/eventos").json()
+    assert any(e["tipo"] == "cadastrou_cracha" and "13969" in e["detalhe"] for e in eventos)
+
+
+def test_criar_usuario_avisa_quando_supabase_falha(cria_cliente, monkeypatch):
+    c = cria_cliente()
+    import app.rotas
+
+    def falha(cracha, nome):
+        raise app.rotas.ErroCrachas("sem rede")
+
+    monkeypatch.setattr(app.rotas, "garantir_cracha", falha)
+    entrar(c)
+    r = c.post("/acesso/api/usuarios", json={"usuario": "13970", "nome": "Ana"}, headers=H)
+    assert r.status_code == 200 and "sem rede" in r.json()["aviso"]
+    # O usuário do portal fica criado mesmo assim
+    assert any(u["usuario"] == "13970" for u in c.get("/acesso/api/usuarios").json()["usuarios"])
+
+
+def test_garantir_cracha_so_para_login_numerico(monkeypatch):
+    import io
+    import json
+    from app import crachas
+    monkeypatch.setattr(crachas.config, "SUPABASE_URL", "https://exemplo.supabase.co")
+    monkeypatch.setattr(crachas.config, "SUPABASE_CHAVE", "chave")
+    pedidos = []
+
+    def urlopen(pedido, timeout):
+        pedidos.append(pedido)
+        return io.BytesIO(b'[{"id": 13969}]')
+
+    monkeypatch.setattr(crachas.urllib.request, "urlopen", urlopen)
+    assert crachas.garantir_cracha("wanderson.oliveira", "W") is False and pedidos == []
+    assert crachas.garantir_cracha(" 13969 ", "Maria") is True
+    assert json.loads(pedidos[0].data) == [{"id": 13969, "nome_completo": "Maria"}]
+    assert "ignore-duplicates" in pedidos[0].get_header("Prefer")  # crachá existente não é alterado

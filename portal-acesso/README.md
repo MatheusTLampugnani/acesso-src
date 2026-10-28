@@ -10,6 +10,9 @@ VisionStock, Rateios, Portaria de Terceiros e os que forem incluídos depois).
 - **Portal** (`/`): um script esconde os cards que o usuário não pode abrir e mostra quem está logado.
 - **Crachás importados** da base do VisionStock (tabela `crachas` do Supabase): o login é o número do crachá
   e cada pessoa cria a própria senha no primeiro acesso. O botão "Senha" com o campo vazio faz a pessoa criar outra.
+- **Usuário criado no portal com login numérico** também entra na tabela `crachas` do Supabase (se ainda não existir),
+  porque o Bobinas confere o crachá lá depois do login. Para quem foi criado antes disso:
+  `docker compose exec acesso python -m app.cli sincronizar-crachas`.
 - **Usuários em SQLite** dentro de um volume Docker: funciona sem internet e não depende do Supabase.
   Senhas com scrypt; sessões guardadas só como hash e derrubadas ao desativar o usuário ou trocar a senha.
 

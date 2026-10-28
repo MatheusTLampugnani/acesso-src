@@ -4,6 +4,7 @@
     docker compose exec acesso python -m app.cli redefinir-senha <usuario>
     docker compose exec acesso python -m app.cli listar
     docker compose exec acesso python -m app.cli importar-crachas [sistema1,sistema2]
+    docker compose exec acesso python -m app.cli sincronizar-crachas
     docker compose exec acesso python -m app.cli liberar-para-todos <sistema> [<sistema> ...]
     docker compose exec acesso python -m app.cli so-marcados <sistema> [<sistema> ...]
 """
@@ -11,7 +12,8 @@ import getpass
 import sys
 
 from . import banco
-from .crachas import ErroCrachas, buscar_crachas
+from .config import config
+from .crachas import ErroCrachas, buscar_crachas, garantir_cracha
 from .seguranca import gerar_hash_senha, senha_valida
 
 
@@ -72,6 +74,29 @@ def importar(sistemas: list[str]) -> None:
     print(f"IMPORTAÇÃO OK: {resultado['novos']} novos, {resultado['existentes']} já existiam (de {len(crachas)} crachás)")
 
 
+def sincronizar() -> None:
+    """Cadastra no Supabase o crachá de quem foi criado direto no portal (login numérico, ativo) e ainda não estava lá."""
+    if not config.SUPABASE_URL or not config.SUPABASE_CHAVE:
+        sys.exit("ERRO: Supabase não configurado (ACESSO_SUPABASE_URL e ACESSO_SUPABASE_CHAVE).")
+    with banco.conexao() as con:
+        usuarios = [u for u in banco.listar_usuarios(con) if u["ativo"]]
+    criados, falhas = [], 0
+    for u in usuarios:
+        try:
+            if garantir_cracha(u["usuario"], u["nome"]):
+                criados.append(u["usuario"])
+        except ErroCrachas as erro:
+            falhas += 1
+            print(f"  {erro}")
+    if criados:
+        with banco.conexao() as con:
+            banco.registrar(con, "terminal", "cadastrou_cracha", f"{len(criados)} no Supabase: {', '.join(criados)[:400]}")
+    print(f"SINCRONIZAÇÃO {'COM FALHAS' if falhas else 'OK'}: {len(criados)} crachás cadastrados no Supabase"
+          f"{': ' + ', '.join(criados) if criados else ''}")
+    if falhas:
+        sys.exit(1)
+
+
 def para_todos(slugs: list[str], aberto: bool) -> None:
     with banco.conexao() as con:
         for slug in slugs:
@@ -90,6 +115,8 @@ def principal(argv: list[str]) -> None:
         redefinir_senha(argv[1])
     elif argv[:1] == ["importar-crachas"] and len(argv) <= 2:
         importar([s for s in (argv[1] if len(argv) == 2 else "").split(",") if s])
+    elif argv[:1] == ["sincronizar-crachas"]:
+        sincronizar()
     elif argv[:1] == ["liberar-para-todos"] and len(argv) >= 2:
         para_todos(argv[1:], True)
     elif argv[:1] == ["so-marcados"] and len(argv) >= 2:

@@ -164,7 +164,7 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   mensagem('erro-novo', '');
   try {
-    const novo = await api('/api/usuarios', { method: 'POST', body: {
+    const { aviso, ...novo } = await api('/api/usuarios', { method: 'POST', body: {
       usuario: document.getElementById('novo-usuario').value,
       nome: document.getElementById('novo-nome').value,
       senha: document.getElementById('novo-senha').value,
@@ -175,7 +175,7 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
     usuarios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     ev.target.reset();
     desenharMatriz();
-    mensagem('erro-novo', `${novo.nome} cadastrado.`, true);
+    mensagem('erro-novo', aviso || `${novo.nome} cadastrado.`, !aviso);
   } catch (e) { mensagem('erro-novo', e.message); }
 });
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from . import banco
 from .config import config
-from .crachas import ErroCrachas, buscar_crachas
+from .crachas import ErroCrachas, buscar_crachas, garantir_cracha
 from .seguranca import TravaLogin, conferir_senha, gerar_hash_senha, hash_token, novo_token, senha_valida
 
 ESTATICOS = Path(__file__).parent / "static"
@@ -270,7 +270,22 @@ def criar_usuario(dados: NovoUsuario, admin=Depends(exige_admin)):
             con, dados.usuario, dados.nome, gerar_hash_senha(dados.senha) if dados.senha else "", dados.admin, dados.sistemas
         )
         banco.registrar(con, admin["usuario"], "criou_usuario", dados.usuario.strip())
-        return banco.buscar_usuario(con, novo_id)
+        novo = banco.buscar_usuario(con, novo_id)
+    aviso = _cadastrar_cracha(admin["usuario"], novo["usuario"], novo["nome"])
+    return {**novo, "aviso": aviso} if aviso else novo
+
+
+def _cadastrar_cracha(quem: str, cracha: str, nome: str) -> str:
+    """Cria o crachá no Supabase (o Bobinas confere lá depois do login). Se falhar, devolve um aviso:
+    o usuário do portal já está criado e o portal não pode depender do Supabase."""
+    try:
+        criado = garantir_cracha(cracha, nome)
+    except ErroCrachas as erro:
+        return f"Usuário criado, mas o crachá não entrou no Supabase ({erro}). Cadastre-o na tabela crachas."
+    if criado:
+        with banco.conexao() as con:
+            banco.registrar(con, quem, "cadastrou_cracha", f"{cracha} no Supabase")
+    return ""
 
 
 @router.put("/api/usuarios/{usuario_id}", dependencies=[Depends(exige_cabecalho)])
