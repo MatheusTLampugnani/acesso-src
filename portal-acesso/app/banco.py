@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 from .config import config
+from .seguranca import novo_codigo
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -15,7 +16,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha_hash TEXT NOT NULL,
     admin INTEGER NOT NULL DEFAULT 0,
     ativo INTEGER NOT NULL DEFAULT 1,
-    criado_em TEXT NOT NULL
+    criado_em TEXT NOT NULL,
+    codigo_acesso TEXT NOT NULL DEFAULT ''  -- pedido no primeiro acesso de fora da empresa; só existe sem senha
 );
 CREATE TABLE IF NOT EXISTS sistemas (
     slug TEXT PRIMARY KEY,
@@ -80,6 +82,10 @@ def iniciar() -> None:
         colunas = {r[1] for r in con.execute("PRAGMA table_info(sistemas)")}
         if "aberto" not in colunas:
             con.execute("ALTER TABLE sistemas ADD COLUMN aberto INTEGER NOT NULL DEFAULT 0")
+        # Bancos criados antes do código de primeiro acesso
+        if "codigo_acesso" not in {r[1] for r in con.execute("PRAGMA table_info(usuarios)")}:
+            con.execute("ALTER TABLE usuarios ADD COLUMN codigo_acesso TEXT NOT NULL DEFAULT ''")
+        garantir_codigos(con)
         if con.execute("SELECT COUNT(*) FROM sistemas").fetchone()[0] == 0:
             con.executemany("INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?)", SISTEMAS_INICIAIS)
 
@@ -106,6 +112,8 @@ def _usuario_dict(con, linha) -> dict:
         "ativo": bool(linha["ativo"]),
         # Sem senha: a pessoa cria a própria senha no primeiro acesso
         "senha_pendente": linha["senha_hash"] == "",
+        # De fora da empresa, o primeiro acesso pede este código (o administrador repassa)
+        "codigo_acesso": linha["codigo_acesso"] if linha["senha_hash"] == "" else "",
         "criado_em": linha["criado_em"],
         "sistemas": sistemas,
     }
@@ -126,11 +134,17 @@ def buscar_por_login(con, usuario: str):
 
 def criar_usuario(con, usuario: str, nome: str, senha_hash: str, admin: bool, sistemas: list[str]) -> int:
     cur = con.execute(
-        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)",
-        (usuario.strip(), nome.strip(), senha_hash, int(admin), agora()),
+        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, criado_em, codigo_acesso) VALUES (?, ?, ?, ?, 1, ?, ?)",
+        (usuario.strip(), nome.strip(), senha_hash, int(admin), agora(), "" if senha_hash else novo_codigo()),
     )
     definir_sistemas(con, cur.lastrowid, sistemas)
     return cur.lastrowid
+
+
+def garantir_codigos(con) -> None:
+    """Todo usuário sem senha tem um código de primeiro acesso (bancos antigos e crachás importados)."""
+    for (usuario_id,) in con.execute("SELECT id FROM usuarios WHERE senha_hash = '' AND codigo_acesso = ''").fetchall():
+        con.execute("UPDATE usuarios SET codigo_acesso = ? WHERE id = ?", (novo_codigo(), usuario_id))
 
 
 def importar_crachas(con, crachas: list[tuple[str, str]], sistemas: list[str]) -> dict:

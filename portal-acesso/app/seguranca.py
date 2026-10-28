@@ -45,6 +45,11 @@ def novo_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def novo_codigo() -> str:
+    """Código de 6 dígitos para criar a senha no primeiro acesso feito de fora da empresa."""
+    return f"{secrets.randbelow(10**6):06d}"
+
+
 def hash_token(token: str) -> str:
     # O banco guarda só o hash: quem copiar o arquivo não consegue usar as sessões
     return hashlib.sha256(token.encode()).hexdigest()

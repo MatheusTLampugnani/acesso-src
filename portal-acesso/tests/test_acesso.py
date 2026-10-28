@@ -1,6 +1,7 @@
 from app.rotas import volta_segura
 
 H = {"X-Portal": "1"}
+HI = {**H, "X-Real-IP": "192.168.1.50"}  # rede da empresa (o Nginx põe o IP de quem chamou neste cabeçalho)
 
 
 def entrar(cliente, usuario="admin", senha="segredo1", volta=""):
@@ -161,7 +162,7 @@ def test_importar_crachas_e_primeiro_acesso(cria_cliente, monkeypatch):
     assert c.get("/acesso/api/verificar/visionstock").status_code == 401
     r = c.post("/acesso/api/primeiro-acesso", json={"usuario": "1234", "senha": "abc", "volta": "/visionstock/"}, headers=H)
     assert r.status_code == 400  # senha curta
-    r = c.post("/acesso/api/primeiro-acesso", json={"usuario": "1234", "senha": "minha123", "volta": "/visionstock/"}, headers=H)
+    r = c.post("/acesso/api/primeiro-acesso", json={"usuario": "1234", "senha": "minha123", "volta": "/visionstock/"}, headers=HI)
     assert r.status_code == 200 and r.json()["volta"] == "/visionstock/"
     assert c.get("/acesso/api/verificar/visionstock").status_code == 200
     # Depois de criada, ninguém sobrescreve pelo primeiro acesso
@@ -178,10 +179,69 @@ def test_admin_zera_senha_e_pessoa_cria_outra(cria_cliente):
     operador = cria_operador(c, ["rateios"])
     r = c.put(f"/acesso/api/usuarios/{operador['id']}", json={"senha": ""}, headers=H)
     assert r.json()["senha_pendente"] is True
+    assert len(r.json()["codigo_acesso"]) == 6  # para criar a senha de fora da empresa
     c.cookies.clear()
     assert entrar(c, "joao", "senha123").status_code == 409
     novo = c.post("/acesso/api/usuarios", json={"usuario": "sem", "nome": "Sem Senha"}, headers=H)
     assert novo.status_code == 401  # sem login de admin
+
+
+def test_primeiro_acesso_de_fora_exige_codigo(cria_cliente):
+    c = cria_cliente()
+    entrar(c)
+    c.post("/acesso/api/usuarios", json={"usuario": "4321", "nome": "Bia"}, headers=H)
+    codigo = next(u for u in c.get("/acesso/api/usuarios").json()["usuarios"] if u["usuario"] == "4321")["codigo_acesso"]
+    assert len(codigo) == 6 and codigo.isdigit()
+    c.cookies.clear()
+
+    funnel = {**H, "X-Real-IP": "127.0.0.1"}  # internet: chega do próprio servidor, sem identificação da Tailscale
+    tailscale = {**funnel, "Tailscale-User-Login": "fulano@videplast.com.br"}
+    ident = lambda h: c.post("/acesso/api/identificar", json={"usuario": "4321"}, headers=h).json()
+    assert ident(funnel) == {"criar_senha": True, "precisa_codigo": True}
+    assert ident(H)["precisa_codigo"] is True  # sem IP conhecido: trata como de fora
+    assert ident(HI)["precisa_codigo"] is False
+    assert ident(tailscale)["precisa_codigo"] is False
+    tenta = lambda h: c.post("/acesso/api/entrar", json={"usuario": "4321", "senha": ""}, headers=h)
+    assert tenta(HI).status_code == 409 and tenta(HI).json()["precisa_codigo"] is False
+    assert tenta(funnel).json()["precisa_codigo"] is True
+
+    criar = lambda h, cod: c.post(
+        "/acesso/api/primeiro-acesso", json={"usuario": "4321", "senha": "minha123", "codigo": cod}, headers=h)
+    assert criar(funnel, "").status_code == 403
+    errado = "000000" if codigo != "000000" else "111111"
+    for _ in range(4):
+        assert criar(funnel, errado).status_code == 403
+    assert criar(funnel, codigo).status_code == 429  # 5 erros travam, mesmo com o código certo
+    assert criar({**H, "X-Real-IP": "200.150.10.20"}, codigo).status_code == 200
+
+    c.cookies.clear()
+    entrar(c)
+    bia = next(u for u in c.get("/acesso/api/usuarios").json()["usuarios"] if u["usuario"] == "4321")
+    assert bia["senha_pendente"] is False and bia["codigo_acesso"] == ""  # o código não serve mais
+    assert sum(e["tipo"] == "codigo_errado" for e in c.get("/acesso/api/eventos").json()) == 5
+
+
+def test_login_errado_fica_no_historico(cria_cliente):
+    c = cria_cliente()
+    assert entrar(c, senha="errada").status_code == 401
+    entrar(c)
+    assert any(e["tipo"] == "login_falhou" for e in c.get("/acesso/api/eventos").json())
+
+
+def test_migra_banco_antigo_sem_codigo_de_acesso(cria_cliente, tmp_path):
+    import sqlite3
+    from app import banco
+    c = cria_cliente()
+    con = sqlite3.connect(tmp_path / "acesso.db")
+    con.execute("ALTER TABLE usuarios DROP COLUMN codigo_acesso")
+    con.execute("INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, criado_em) VALUES ('777', 'Antigo', '', 0, 1, 'x')")
+    con.commit()
+    con.close()
+    banco.iniciar()
+    with banco.conexao() as con:
+        assert len(banco.buscar_por_login(con, "777")["codigo_acesso"]) == 6
+        assert banco.buscar_por_login(con, "admin")["codigo_acesso"] == ""  # quem tem senha não ganha código
+    assert entrar(c).status_code == 200
 
 
 def test_importar_sem_supabase_configurado(cria_cliente):

@@ -42,7 +42,10 @@ function desenharMatriz() {
     : usuarios;
   const linhas = visiveis.map((u) => el('tr', { class: u.ativo ? '' : 'inativo' },
     el('td', {}, el('strong', {}, u.nome), el('div', { class: 'suave' }, u.usuario,
-      u.senha_pendente ? el('span', { class: 'selo', style: 'margin-left:6px' }, 'sem senha ainda') : null)),
+      u.senha_pendente ? el('span', {
+        class: 'selo', style: 'margin-left:6px',
+        title: 'Fora da rede da empresa, a pessoa precisa deste código para criar a senha',
+      }, u.codigo_acesso ? `sem senha ainda · código ${u.codigo_acesso}` : 'sem senha ainda') : null)),
     sistemas.map((s) => el('td', { class: 'marca' }, el('input', {
       type: 'checkbox',
       'aria-label': `${u.nome} acessa ${s.nome}`,
@@ -77,7 +80,8 @@ async function redefinirSenha(u) {
   try {
     Object.assign(u, await api(`/api/usuarios/${u.id}`, { method: 'PUT', body: { senha } }));
     desenharMatriz();
-    mensagem('erro-matriz', senha ? `Senha de ${u.nome} redefinida.` : `${u.nome} vai criar uma nova senha no próximo acesso.`, true);
+    mensagem('erro-matriz', senha ? `Senha de ${u.nome} redefinida.`
+      : `${u.nome} vai criar uma nova senha no próximo acesso (fora da empresa, com o código ${u.codigo_acesso}).`, true);
   } catch (e) { mensagem('erro-matriz', e.message); }
 }
 
@@ -175,7 +179,10 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
     usuarios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     ev.target.reset();
     desenharMatriz();
-    mensagem('erro-novo', aviso || `${novo.nome} cadastrado.`, !aviso);
+    const pronto = novo.senha_pendente
+      ? `${novo.nome} cadastrado. Código de primeiro acesso (fora da empresa): ${novo.codigo_acesso}.`
+      : `${novo.nome} cadastrado.`;
+    mensagem('erro-novo', aviso || pronto, !aviso);
   } catch (e) { mensagem('erro-novo', e.message); }
 });
 

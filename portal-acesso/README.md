@@ -10,6 +10,10 @@ VisionStock, Rateios, Portaria de Terceiros e os que forem incluídos depois).
 - **Portal** (`/`): um script esconde os cards que o usuário não pode abrir e mostra quem está logado.
 - **Crachás importados** da base do VisionStock (tabela `crachas` do Supabase): o login é o número do crachá
   e cada pessoa cria a própria senha no primeiro acesso. O botão "Senha" com o campo vazio faz a pessoa criar outra.
+- **Primeiro acesso de fora da empresa** (internet, pelo Tailscale Funnel) pede também um **código de 6 números**,
+  que o administrador vê na matriz de usuários ao lado de "sem senha ainda". Na rede da empresa (IP 10.x, 172.16-31.x,
+  192.168.x) ou pela Tailscale (cabeçalho `Tailscale-User-Login`, que a Tailscale apaga dos pedidos vindos do Funnel)
+  o código não é pedido. 5 códigos errados travam por alguns minutos; cada erro fica no histórico (`codigo errado`).
 - **Usuário criado no portal com login numérico** também entra na tabela `crachas` do Supabase (se ainda não existir),
   porque o Bobinas confere o crachá lá depois do login. Para quem foi criado antes disso:
   `docker compose exec acesso python -m app.cli sincronizar-crachas`.
