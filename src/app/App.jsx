@@ -16,7 +16,7 @@ import './App.css';
 function App() {
   const { dialogo, fechar, abrirAlerta, abrirConfirmacao } = useDialogo();
   const { isOnline, pendingCount, syncNow, ultimoErro, servidorConfigurado } = useSyncManager();
-  const { operador, logado, entrar, sair } = useOperador();
+  const { operador, logado, verificandoPortal, entrar, sair } = useOperador();
   const inventario = useInventario({ operador, abrirAlerta, aoRegistrar: syncNow });
   const [mostrarConciliacao, setMostrarConciliacao] = useState(false);
 
@@ -97,7 +97,13 @@ function App() {
         />
       )}
 
-      {!logado ? (
+      {verificandoPortal ? (
+        // Enquanto confere o login do Portal, não mostra o operador anterior nem a tela de crachá
+        <div className="d-flex flex-column align-items-center justify-content-center gap-2" style={{ minHeight: '60vh' }}>
+          <div className="spinner-border text-danger" role="status" />
+          <span className="small text-muted">Entrando com o seu login do Portal...</span>
+        </div>
+      ) : !logado ? (
         <LoginOperador aoEntrar={entrar} abrirAlerta={abrirAlerta} />
       ) : (
         <>

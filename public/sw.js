@@ -1,6 +1,6 @@
 // Service Worker do VisionStock (ALMOX) — suporte offline do PWA.
 // Troque a versão quando mudar a estratégia de cache; os arquivos do build já têm hash no nome.
-const CACHE_NAME = 'almox-v3';
+const CACHE_NAME = 'almox-v4';
 // Caminho onde o app está publicado ("/" ou um subcaminho como "/visionstock/")
 const BASE = new URL(self.registration.scope).pathname;
 const INDEX = `${BASE}index.html`;
@@ -30,8 +30,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Só GET do próprio domínio; API do drone e Supabase vão direto para a rede
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith(`${BASE}api/`)) return;
+  // Só GET dos arquivos do próprio app; API do drone, Supabase e o Portal de Acesso (/acesso/, que diz
+  // quem está logado) vão direto para a rede — servir esses do cache trocaria o operador com atraso
+  if (request.method !== 'GET' || url.origin !== self.location.origin
+    || !url.pathname.startsWith(BASE) || url.pathname.startsWith(`${BASE}api/`)) return;
 
   // Navegação: rede primeiro (pega versão nova), cache como reserva offline
   if (request.mode === 'navigate') {
