@@ -46,14 +46,14 @@
           </svg>
           <div>
             <strong>Primeiro acesso detectado!</strong><br>
-            <span class="suave" style="color:var(--text); font-size:0.84rem;">Crie sua senha pessoal e confirme seu e-mail.</span>
+            <span class="suave" style="color:var(--text); font-size:0.84rem;">Crie sua senha pessoal para continuar.</span>
           </div>
         </div>
 
         <!-- Campo E-mail Corporativo (solicitado caso ainda não esteja no cadastro) -->
         <div id="bloco-email" class="oculto" style="margin-top: 14px;">
           <label for="email">E-mail corporativo</label>
-          <input id="email" type="email" autocomplete="email" placeholder="ex.: nome.sobrenome@empresa.com.br" spellcheck="false">
+          <input id="email" type="email" autocomplete="email" placeholder="ex.: nome.sobrenome@videplast.com.br" spellcheck="false">
         </div>
 
         <label for="nova" style="margin-top: 14px;">Nova senha</label>
@@ -75,6 +75,13 @@
             <li id="regra-tam">Mínimo de 6 caracteres</li>
             <li id="regra-confere">As senhas conferem</li>
           </ul>
+        </div>
+
+        <!-- Código de primeiro acesso (solicitado quando acessado de fora da rede interna) -->
+        <div id="bloco-codigo" class="oculto" style="margin-top: 14px;">
+          <label for="codigo">Código de primeiro acesso</label>
+          <input id="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 dígitos">
+          <p class="suave" style="margin:6px 0 0; font-size:0.82rem;">Fora da rede da empresa, peça este código de 6 números ao administrador do portal (TI). Na rede interna ele não é pedido.</p>
         </div>
       </div>
 
@@ -104,6 +111,7 @@
     try { volta = decodeURIComponent(volta); } catch { /* valor já estava decodificado */ }
 
     let passo = 'cracha';
+    let precisaCodigo = false;  // primeiro acesso de fora da empresa pede o código do administrador
     const campo = (id) => document.getElementById(id);
 
     // Inicializa os botões de mostrar/ocultar senha
@@ -143,11 +151,13 @@
       const mostra = (id, sim) => campo(id).classList.toggle('oculto', !sim);
       mostra('bloco-senha', novo === 'senha');
       mostra('bloco-nova', novo === 'criar');
+      mostra('bloco-codigo', novo === 'criar' && precisaCodigo);
       mostra('trocar', novo !== 'cracha');
 
       campo('usuario').readOnly = novo !== 'cracha';
       campo('senha').required = novo === 'senha';
       campo('nova').required = campo('repetir').required = novo === 'criar';
+      campo('codigo').required = novo === 'criar' && precisaCodigo;
 
       if (novo === 'criar') {
         const precisaPedirEmail = dadosIdentificacao && dadosIdentificacao.pede_email;
@@ -170,13 +180,18 @@
       campo('botao').disabled = false;
       campo('erro').textContent = '';
 
-      const alvoFoco = { cracha: 'usuario', senha: 'senha', criar: (dadosIdentificacao && dadosIdentificacao.pede_email) ? 'email' : 'nova' }[novo];
-      setTimeout(() => campo(alvoFoco).focus(), 80);
+      const alvoFoco = {
+        cracha: 'usuario',
+        senha: 'senha',
+        criar: (dadosIdentificacao && dadosIdentificacao.pede_email) ? 'email' : (precisaCodigo ? 'codigo' : 'nova')
+      }[novo];
+      setTimeout(() => { const el = campo(alvoFoco); if (el) el.focus(); }, 80);
     }
 
     campo('trocar').addEventListener('click', () => {
-      campo('senha').value = campo('nova').value = campo('repetir').value = campo('email').value = '';
+      campo('senha').value = campo('nova').value = campo('repetir').value = campo('email').value = campo('codigo').value = '';
       dadosIdentificacao = null;
+      precisaCodigo = false;
       checarRequisitosSenha();
       irPara('cracha');
     });
@@ -212,6 +227,11 @@
           campo('repetir').focus();
           return;
         }
+        if (precisaCodigo && !campo('codigo').value.trim()) {
+          erro.textContent = 'Informe o código de primeiro acesso recebido do administrador (TI).';
+          campo('codigo').focus();
+          return;
+        }
       }
 
       const textoOriginal = campo('botao-texto').textContent;
@@ -221,13 +241,20 @@
         if (passo === 'cracha') {
           const r = await api('/api/identificar', { method: 'POST', body: { usuario } });
           dadosIdentificacao = r;
+          precisaCodigo = Boolean(r.precisa_codigo);
           definirCarregando(false, textoOriginal);
           irPara(r.criar_senha ? 'criar' : 'senha');
           return;
         }
 
         const corpo = passo === 'criar'
-          ? { usuario, senha: campo('nova').value, email: campo('email').value.trim(), volta }
+          ? {
+              usuario,
+              senha: campo('nova').value,
+              email: campo('email').value.trim(),
+              codigo: campo('codigo').value.trim(),
+              volta
+            }
           : { usuario, senha: campo('senha').value, volta };
 
         const r = passo === 'criar'
@@ -239,6 +266,7 @@
       } catch (e) {
         definirCarregando(false, textoOriginal);
         if (e.status === 409 && e.dados && e.dados.criar_senha) {
+          precisaCodigo = Boolean(e.dados.precisa_codigo);
           irPara('criar');
           erro.textContent = 'Primeiro acesso detectado: por favor, crie sua senha.';
           return;

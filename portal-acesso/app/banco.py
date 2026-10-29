@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 from .config import config
+from .seguranca import novo_codigo
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email TEXT COLLATE NOCASE,
     setor TEXT,
     unidade INTEGER,
+    codigo_acesso TEXT NOT NULL DEFAULT '',
     criado_em TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sistemas (
@@ -91,14 +93,18 @@ def iniciar() -> None:
             con.execute("ALTER TABLE usuarios ADD COLUMN setor TEXT")
         if "unidade" not in colunas_usr:
             con.execute("ALTER TABLE usuarios ADD COLUMN unidade INTEGER")
+        if "codigo_acesso" not in colunas_usr:
+            con.execute("ALTER TABLE usuarios ADD COLUMN codigo_acesso TEXT NOT NULL DEFAULT ''")
+
+        garantir_codigos(con)
 
         for s_slug, s_nome, s_caminho, s_ordem in SISTEMAS_INICIAIS:
             con.execute(
                 "INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?) "
-                "ON CONFLICT(slug) DO UPDATE SET caminho = excluded.caminho WHERE sistemas.caminho != excluded.caminho",
+                "ON CONFLICT(slug) DO UPDATE SET caminho = excluded.caminho, nome = excluded.nome "
+                "WHERE sistemas.caminho != excluded.caminho OR sistemas.nome != excluded.nome",
                 (s_slug, s_nome, s_caminho, s_ordem),
             )
-
 
 
 def registrar(con, usuario: str | None, tipo: str, detalhe: str = "") -> None:
@@ -121,11 +127,13 @@ def _usuario_dict(con, linha) -> dict:
         "nome": linha["nome"],
         "admin": bool(linha["admin"]),
         "ativo": bool(linha["ativo"]),
-        "email": linha["email"] if "email" in chaves and linha["email"] else "",
-        "setor": linha["setor"] if "setor" in chaves and linha["setor"] else "",
+        "email": linha["email"] if ("email" in chaves and linha["email"]) else "",
+        "setor": linha["setor"] if ("setor" in chaves and linha["setor"]) else "",
         "unidade": linha["unidade"] if "unidade" in chaves else None,
         # Sem senha: a pessoa cria a própria senha no primeiro acesso
         "senha_pendente": linha["senha_hash"] == "",
+        # De fora da empresa, o primeiro acesso pede este código (o administrador repassa)
+        "codigo_acesso": (linha["codigo_acesso"] if "codigo_acesso" in chaves else "") if linha["senha_hash"] == "" else "",
         "criado_em": linha["criado_em"],
         "sistemas": sistemas,
     }
@@ -154,17 +162,26 @@ def criar_usuario(
     con, usuario: str, nome: str, senha_hash: str, admin: bool, sistemas: list[str],
     email: str = "", setor: str = "", unidade: int | None = None,
 ) -> int:
+    codigo = "" if senha_hash else novo_codigo()
     cur = con.execute(
-        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, email, setor, unidade, criado_em) "
-        "VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)",
-        (usuario.strip(), nome.strip(), senha_hash, int(admin), email.strip().lower(), setor.strip(), unidade, agora()),
+        "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, email, setor, unidade, codigo_acesso, criado_em) "
+        "VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)",
+        (usuario.strip(), nome.strip(), senha_hash, int(admin), (email or "").strip().lower(), (setor or "").strip(), unidade, codigo, agora()),
     )
     definir_sistemas(con, cur.lastrowid, sistemas)
     return cur.lastrowid
 
 
+def garantir_codigos(con) -> None:
+    """Todo usuário sem senha tem um código de primeiro acesso (bancos antigos e crachás importados)."""
+    for (usuario_id,) in con.execute(
+        "SELECT id FROM usuarios WHERE senha_hash = '' AND (codigo_acesso IS NULL OR codigo_acesso = '')"
+    ).fetchall():
+        con.execute("UPDATE usuarios SET codigo_acesso = ? WHERE id = ?", (novo_codigo(), usuario_id))
+
+
 def importar_crachas(con, crachas: list, sistemas: list[str]) -> dict:
-    """Cria ou atualiza usuários no banco local a partir da base do Supabase."""
+    """Cria ou atualiza usuários no banco local a partir da base do Supabase ou lista de tuplas."""
     novos, atualizados = 0, 0
     for item in crachas:
         if isinstance(item, dict):
@@ -191,6 +208,7 @@ def importar_crachas(con, crachas: list, sistemas: list[str]) -> dict:
         else:
             criar_usuario(con, cracha, nome, senha_hash, admin, sistemas, email=email, setor=setor, unidade=unidade)
             novos += 1
+    garantir_codigos(con)
     return {"novos": novos, "existentes": atualizados}
 
 
@@ -204,7 +222,6 @@ def sincronizar_com_supabase(con, sistemas: list[str] | None = None) -> dict:
         f"{resultado['novos']} novos cadastrados, {resultado['existentes']} atualizados da base Supabase",
     )
     return resultado
-
 
 
 def definir_sistemas(con, usuario_id: int, sistemas: list[str]) -> None:

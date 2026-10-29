@@ -1,4 +1,6 @@
 """Rotas do Portal de Acesso: login, verificação para o Nginx (auth_request) e painel de administração."""
+import hmac
+import ipaddress
 import re
 import threading
 import time
@@ -17,8 +19,17 @@ from .crachas import (
     buscar_crachas,
     criar_usuario_supabase,
     excluir_usuario_supabase,
+    garantir_cracha,
 )
-from .seguranca import TravaLogin, conferir_senha, gerar_hash_senha, hash_token, novo_token, senha_valida
+from .seguranca import (
+    TravaLogin,
+    conferir_senha,
+    gerar_hash_senha,
+    hash_token,
+    novo_codigo,
+    novo_token,
+    senha_valida,
+)
 
 ESTATICOS = Path(__file__).parent / "static"
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
@@ -70,6 +81,7 @@ class PrimeiroAcesso(BaseModel):
     usuario: str = Field(max_length=120)  # crachá ou e-mail
     senha: str = Field(max_length=200)
     email: str = ""
+    codigo: str = Field(default="", max_length=12)  # só pedido de fora da empresa
     volta: str = ""
 
 
@@ -90,6 +102,22 @@ class TrocaSenha(BaseModel):
 
 def _ip(request: Request) -> str:
     return request.headers.get("x-real-ip") or (request.client.host if request.client else "?")
+
+
+REDES_DA_EMPRESA = [ipaddress.ip_network(r) for r in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10")]
+
+
+def _interno(request: Request) -> bool:
+    """Rede da empresa ou Tailscale. O Nginx põe o IP de quem chamou em X-Real-IP (o cliente não consegue trocar).
+    Pela Tailscale o pedido chega do próprio servidor (127.0.0.1) com Tailscale-User-Login; pelo Funnel (internet)
+    também chega de 127.0.0.1, mas sem esse cabeçalho, que a Tailscale apaga dos pedidos vindos de fora."""
+    try:
+        ip = ipaddress.ip_address(_ip(request))
+    except ValueError:
+        return False
+    if ip.is_loopback:
+        return bool(request.headers.get("tailscale-user-login"))
+    return any(ip in rede for rede in REDES_DA_EMPRESA)
 
 
 def _usuario_logado(request: Request, con):
@@ -187,6 +215,7 @@ def identificar(dados: Identificacao, request: Request):
 
     return {
         "criar_senha": precisa_criar,
+        "precisa_codigo": precisa_criar and not _interno(request),
         "pede_email": pede_email,
         "email_existente": email_cadastrado,
         "nome": usuario["nome"] if usuario else "",
@@ -208,10 +237,14 @@ def entrar(dados: Entrada, request: Request):
                 usuario = banco.buscar_por_login(con, cracha_sup["cracha"])
 
         if usuario and usuario["ativo"] and usuario["senha_hash"] == "":
-            return JSONResponse({"detail": "Primeiro acesso: crie a sua senha.", "criar_senha": True}, status_code=409)
+            return JSONResponse(
+                {"detail": "Primeiro acesso: crie a sua senha.", "criar_senha": True, "precisa_codigo": not _interno(request)},
+                status_code=409,
+            )
         if not usuario or not usuario["ativo"] or not conferir_senha(dados.senha, usuario["senha_hash"]):
             trava.erro(chave)
-            banco.registrar(con, termo[:60], "login_falhou", _ip(request))
+            banco.registrar(con, dados.usuario.strip()[:60], "login_falhou", _ip(request))
+            con.commit()  # sem isto o erro abaixo desfaz o registro
             raise HTTPException(401, "Usuário ou senha incorretos.")
         trava.limpar(chave)
         return _abrir_sessao(con, usuario, request, dados.volta, "login")
@@ -231,10 +264,15 @@ def _abrir_sessao(con, usuario, request: Request, volta: str, evento: str) -> JS
 
 @router.post("/api/primeiro-acesso", dependencies=[Depends(exige_cabecalho)])
 def primeiro_acesso(dados: PrimeiroAcesso, request: Request):
-    """Quem ainda não tem senha cria a própria, informa o e-mail corporativo e sincroniza com o Supabase."""
+    """Quem ainda não tem senha (crachá importado ou senha zerada pelo admin) cria a própria e já entra.
+    De fora da empresa (internet) precisa também do código de primeiro acesso que o administrador vê no painel:
+    sem ele, qualquer pessoa que acertasse o número de um crachá criaria a senha no lugar do dono."""
+    termo = dados.usuario.strip()
+    chave = f"{_ip(request)}|{termo.lower()}"
+    if trava.travado(chave):
+        raise HTTPException(429, f"Muitas tentativas. Aguarde {config.TRAVA_MINUTOS} minutos.")
     if erro := senha_valida(dados.senha):
         raise HTTPException(400, erro)
-    termo = dados.usuario.strip()
     with banco.conexao() as con:
         usuario = banco.buscar_por_login(con, termo)
         if not usuario:
@@ -246,22 +284,35 @@ def primeiro_acesso(dados: PrimeiroAcesso, request: Request):
         if not usuario or not usuario["ativo"] or usuario["senha_hash"] != "":
             raise HTTPException(400, "Este usuário já tem senha. Use a tela de entrar.")
 
+        if not _interno(request):
+            codigo = usuario["codigo_acesso"] if "codigo_acesso" in usuario.keys() else ""
+            if not codigo or not hmac.compare_digest(dados.codigo.strip().encode(), codigo.encode()):
+                trava.erro(chave)
+                banco.registrar(con, usuario["usuario"], "codigo_errado", _ip(request))
+                con.commit()
+                raise HTTPException(
+                    403, "Código de primeiro acesso incorreto. Peça o código ao administrador do portal (TI) "
+                         "ou crie a senha pela rede da empresa.",
+                )
+
         nova_hash = gerar_hash_senha(dados.senha)
         email_novo = (dados.email or "").strip().lower()
 
         if email_novo:
             cur = con.execute(
-                "UPDATE usuarios SET senha_hash = ?, email = ? WHERE id = ? AND senha_hash = ''",
+                "UPDATE usuarios SET senha_hash = ?, email = ?, codigo_acesso = '' WHERE id = ? AND senha_hash = ''",
                 (nova_hash, email_novo, usuario["id"]),
             )
         else:
             cur = con.execute(
-                "UPDATE usuarios SET senha_hash = ? WHERE id = ? AND senha_hash = ''",
+                "UPDATE usuarios SET senha_hash = ?, codigo_acesso = '' WHERE id = ? AND senha_hash = ''",
                 (nova_hash, usuario["id"]),
             )
 
         if cur.rowcount != 1:
             raise HTTPException(400, "Este usuário já tem senha. Use a tela de entrar.")
+
+        trava.limpar(chave)
 
         # Sincroniza diretamente na tabela crachas do Supabase
         try:
@@ -363,20 +414,34 @@ def criar_usuario(dados: NovoUsuario, admin=Depends(exige_admin)):
         banco.registrar(con, admin["usuario"], "criou_usuario", dados.usuario.strip())
         novo = banco.buscar_usuario(con, novo_id)
 
-    # Espelha novo colaborador na base de crachás do Supabase
+    aviso = _cadastrar_cracha(admin["usuario"], novo["usuario"], novo["nome"], dados, hash_senha)
+    return {**novo, "aviso": aviso} if aviso else novo
+
+
+def _cadastrar_cracha(quem: str, cracha: str, nome: str, dados: NovoUsuario, hash_senha: str) -> str:
+    """Cria o crachá no Supabase (o Bobinas e outros conferem lá). Se falhar, devolve um aviso:
+    o usuário do portal já está criado e o portal não pode depender do Supabase."""
     try:
-        criar_usuario_supabase(
-            dados.usuario,
-            dados.nome,
+        criado = criar_usuario_supabase(
+            cracha,
+            nome,
             setor=dados.setor,
             unidade=dados.unidade,
             admin=dados.admin,
             email=dados.email,
             senha_hash=hash_senha,
         )
-    except Exception:
-        pass
-    return novo
+        if not criado:
+            criado = garantir_cracha(cracha, nome)
+    except Exception as erro:
+        return f"Usuário criado, mas o crachá não entrou no Supabase ({erro}). Cadastre-o na tabela crachas."
+    if criado:
+        try:
+            with banco.conexao() as con:
+                banco.registrar(con, quem, "cadastrou_cracha", f"{cracha} no Supabase")
+        except Exception:
+            pass
+    return ""
 
 
 @router.put("/api/usuarios/{usuario_id}", dependencies=[Depends(exige_cabecalho)])
@@ -414,7 +479,10 @@ def alterar_usuario(usuario_id: int, dados: AlteraUsuario, admin=Depends(exige_a
             if dados.senha and (erro := senha_valida(dados.senha)):
                 raise HTTPException(400, erro)
             novo_hash = gerar_hash_senha(dados.senha) if dados.senha else ""
-            con.execute("UPDATE usuarios SET senha_hash = ? WHERE id = ?", (novo_hash, usuario_id))
+            con.execute(
+                "UPDATE usuarios SET senha_hash = ?, codigo_acesso = ? WHERE id = ?",
+                (novo_hash, "" if dados.senha else novo_codigo(), usuario_id),
+            )
             banco.encerrar_sessoes_do_usuario(con, usuario_id)
             mudancas.append("senha redefinida" if dados.senha else "senha apagada (cria no próximo acesso)")
         if dados.sistemas is not None:
@@ -469,7 +537,6 @@ def importar_crachas(dados: Importacao, admin=Depends(exige_admin)):
             f"{resultado['novos']} novos, {resultado['existentes']} já existiam; sistemas: {','.join(dados.sistemas) or 'nenhum'}",
         )
     return resultado
-
 
 
 @router.get("/api/sistemas")
@@ -564,6 +631,7 @@ def estatico(arquivo: str):
     if arquivo not in {"estilo.css", "painel.js", "portal.js", "comum.js"}:
         raise HTTPException(404)
     return _pagina(arquivo)
+
 
 @router.get("/assets/{arquivo}", include_in_schema=False)
 def asset(arquivo: str):

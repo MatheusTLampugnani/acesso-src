@@ -1,4 +1,4 @@
-"""Integração com a tabela crachas no Supabase: leitura, busca e atualização de senha/email."""
+"""Integração com a tabela crachas no Supabase: leitura, busca, cadastro e atualização de senha/email."""
 import json
 import re
 import urllib.parse
@@ -7,6 +7,7 @@ import urllib.request
 from .config import config
 
 CRACHA = re.compile(r"^[A-Za-z0-9._@-]{1,60}$")
+NUMERO = re.compile(r"^\d{1,18}$")  # o id da tabela crachas é bigint
 POR_PAGINA = 1000
 
 
@@ -192,3 +193,28 @@ def excluir_usuario_supabase(cracha_id: int | str) -> bool:
     except Exception:
         return False
 
+
+def garantir_cracha(cracha: str, nome: str) -> bool:
+    """Cadastra o crachá no Supabase se ainda não existir, para os sistemas que conferem a tabela
+    (ex.: Bobinas) reconhecerem quem foi criado direto no portal. Crachá que já existe não é alterado.
+    Retorna True se cadastrou; False se já existia, se o login não é número ou se o Supabase não está configurado."""
+    cracha = cracha.strip()
+    if not NUMERO.match(cracha) or not config.SUPABASE_URL or not config.SUPABASE_CHAVE:
+        return False
+    pedido = urllib.request.Request(
+        f"{config.SUPABASE_URL}/rest/v1/{config.TABELA_CRACHAS}?on_conflict=id",
+        data=json.dumps([{"id": int(cracha), "nome_completo": nome.strip()[:120]}]).encode(),
+        method="POST",
+        headers={
+            "apikey": config.SUPABASE_CHAVE,
+            "Authorization": f"Bearer {config.SUPABASE_CHAVE}",
+            "Content-Type": "application/json",
+            # Se já existe, não mexe (setor, unidade e admin continuam como estão no Supabase)
+            "Prefer": "resolution=ignore-duplicates,return=representation",
+        },
+    )
+    try:
+        with urllib.request.urlopen(pedido, timeout=10) as resposta:
+            return bool(json.load(resposta))
+    except Exception as erro:  # rede, chave sem permissão de escrita, tabela inexistente
+        raise ErroCrachas(f"Não foi possível cadastrar o crachá {cracha} no Supabase: {erro}") from erro

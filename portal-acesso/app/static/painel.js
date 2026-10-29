@@ -236,7 +236,8 @@ function desenharMatriz() {
     // Status de Primeiro Acesso Pendente
     if (u.senha_pendente) {
       partesSub.push(el('span', { class: 'divisor-ponto' }, '•'));
-      partesSub.push(el('span', { class: 'status-acesso-dot', title: 'Colaborador ainda não cadastrou sua primeira senha' }, '1º Acesso'));
+      const txtAcesso = u.codigo_acesso ? `1º Acesso · Cód: ${u.codigo_acesso}` : '1º Acesso';
+      partesSub.push(el('span', { class: 'status-acesso-dot', title: u.codigo_acesso ? `Colaborador ainda não cadastrou senha. Código fora da empresa: ${u.codigo_acesso}` : 'Colaborador ainda não cadastrou sua primeira senha' }, txtAcesso));
     }
 
     const linhaSub = el('div', { class: 'colaborador-linha-sub' }, ...partesSub);
@@ -415,7 +416,7 @@ async function redefinirSenha(u) {
     const atualizado = await api(`/api/usuarios/${u.id}`, { method: 'PUT', body: { senha } });
     Object.assign(u, atualizado);
     desenharMatriz();
-    const textoMsg = senha ? `Senha de ${u.nome} redefinida com sucesso.` : `${u.nome} deverá criar uma nova senha no próximo acesso.`;
+    const textoMsg = senha ? `Senha de ${u.nome} redefinida com sucesso.` : `${u.nome} vai criar uma nova senha no próximo acesso${u.codigo_acesso ? ` (código fora da empresa: ${u.codigo_acesso})` : ''}.`;
     mensagem('erro-matriz', textoMsg, true);
     toast(textoMsg, 'sucesso');
   } catch (e) {
@@ -827,7 +828,7 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
   try {
     const emailEl = document.getElementById('novo-email');
     const setorEl = document.getElementById('novo-setor');
-    const novo = await api('/api/usuarios', {
+    const { aviso, ...novo } = await api('/api/usuarios', {
       method: 'POST', body: {
         usuario: document.getElementById('novo-usuario').value.trim(),
         nome: document.getElementById('novo-nome').value.trim(),
@@ -838,7 +839,6 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
         sistemas: [...document.querySelectorAll('#novo-sistemas input:checked')].map((c) => c.value),
       }
     });
-
     usuarios.push(novo);
     usuarios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     ev.target.reset();
@@ -847,7 +847,10 @@ document.getElementById('form-novo').addEventListener('submit', async (ev) => {
     atualizarContadoresStatus();
     atualizarOpcoesSetor();
     desenharMatriz();
-    mensagem('erro-novo', `Colaborador ${novo.nome} cadastrado com sucesso.`, true);
+    const pronto = (novo.senha_pendente && novo.codigo_acesso)
+      ? `Colaborador ${novo.nome} cadastrado com sucesso. Código fora da empresa: ${novo.codigo_acesso}.`
+      : `Colaborador ${novo.nome} cadastrado com sucesso.`;
+    mensagem('erro-novo', aviso || pronto, !aviso);
     toast(`${novo.nome} adicionado ao portal.`, 'sucesso');
   } catch (e) {
     mensagem('erro-novo', e.message);
