@@ -12,7 +12,7 @@
 #   bash implantar.sh status
 set -euo pipefail
 
-REPO=${REPO:-https://github.com/WandersonGuimaraesOlv/VisionStock.git}
+REPO=${REPO:-https://github.com/MatheusTLampugnani/acesso-src.git}
 FONTE=${FONTE:-$HOME/acesso-src}
 # Sem RAMO informado, continua no ramo que já está baixado (ou master na primeira vez)
 RAMO=${RAMO:-$(git -C "$FONTE" rev-parse --abbrev-ref HEAD 2>/dev/null || echo master)}

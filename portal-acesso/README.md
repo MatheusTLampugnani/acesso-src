@@ -23,7 +23,7 @@ VisionStock, Rateios, Portaria de Terceiros e os que forem incluídos depois).
 ## Implantação no servidor
 
 ```bash
-git clone https://github.com/WandersonGuimaraesOlv/VisionStock.git ~/acesso-src
+git clone https://github.com/MatheusTLampugnani/acesso-src.git ~/acesso-src
 bash ~/acesso-src/portal-acesso/deploy/implantar.sh instalar     # serviço na porta 8093 + /acesso/ no Nginx + portal
 bash ~/acesso-src/portal-acesso/deploy/implantar.sh criar-admin  # primeiro administrador
 bash ~/acesso-src/portal-acesso/deploy/implantar.sh importar     # cadastra os crachás do VisionStock (opcional: importar visionstock,bobinas)

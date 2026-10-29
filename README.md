@@ -37,7 +37,7 @@ Para atualizar ou instalar no servidor (`~/acesso-src`):
 
 ```bash
 # 1. Clonar ou atualizar o repositório no servidor
-git clone https://github.com/WandersonGuimaraesOlv/VisionStock.git ~/acesso-src
+git clone https://github.com/MatheusTLampugnani/acesso-src.git ~/acesso-src
 cd ~/acesso-src/portal-acesso
 
 # 2. Instalar o serviço e configurar o Nginx
