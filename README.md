@@ -17,6 +17,9 @@ O Portal de Acesso atua como o ponto de entrada unificado para todas as aplicaç
 | **VisionStock (Almox)** | `/visionstock/` | Conferência e inventário universal de almoxarifado por SKU |
 | **Rateios Operacionais** | `/rateios/` | Distribuição e rateio de custos por centros de custo e linhas |
 | **Portaria de Terceiros** | `/terceirizados/` | Controle de entrada e saída de terceiros, visitantes e equipamentos |
+| **Entrevistas com IA (RH)** | `/rh/` | Gravação de entrevistas, transcrição e resumo por IA |
+| **Estoque Mín/Máx** | `/minmax/` | Parâmetros de estoque mínimo e máximo do almoxarifado |
+| **Jornada da Escuta** | `/escuta/` | Conversas entre supervisor e colaborador, com o formulário preenchido a partir do áudio |
 | **Gestão de Acessos** | `/acesso/` | Painel administrativo de controle de permissões e auditoria |
 | **Vitrine do Portal** | `/` | Página inicial com cards dinâmicos que exibem apenas os sistemas autorizados |
 
@@ -24,16 +27,24 @@ O Portal de Acesso atua como o ponto de entrada unificado para todas as aplicaç
 
 ## ⚡ Integração com o Supabase
 
-- **Base Corporativa:** Todos os colaboradores e crachás vêm da tabela `crachas` no Supabase (`id`, `nome_completo`, `setor`, `unidade`, `admin`, `email`, `senha_hash`).
-- **Sincronização Automática:** Ao inicializar o container, o portal sincroniza em segundo plano os 180+ colaboradores cadastrados.
-- **Espelhamento Contínuo:** Alterações de senha, cadastros ou edições de usuários feitas no painel são salvas localmente no SQLite e espelhadas diretamente no Supabase.
-- **Resiliência Offline:** O banco SQLite local garante que a validação de rotas do Nginx responda em menos de 1ms sem dependência de internet externa.
+- **Base Corporativa:** Os colaboradores vêm da tabela `crachas` no Supabase. O Portal lê e copia só `id`, `nome_completo`, `setor`, `unidade` e `email`.
+- **Admin e senha são do Portal:** ficam só no SQLite. O `admin` de `crachas` vale para Bobinas, VisionStock e Mín/Máx, e no Portal abriria também RH e Jornada da Escuta.
+- **Sincronização Automática:** Ao inicializar o container, o portal atualiza os dados dos colaboradores e cria quem falta, sem senha e sem nenhum sistema liberado. Quem foi excluído no painel não volta sozinho.
+- **Resiliência Offline:** O banco SQLite local garante que a validação de rotas do Nginx funcione sem depender da internet.
+
+---
+
+## 🚀 Atualizações
+
+O servidor acompanha o `master` deste repositório pelo publicador (`~/publicador.sh`, a cada 2 minutos). Mudança em `portal-acesso/` é publicada sozinha, e o publicador volta à versão anterior se o Portal não responder. Portanto, tudo entra por PR, com os testes passando.
+
+A página inicial (`deploy/portal-vitrine.html`) não é publicada sozinha. Depois de mudá-la, rode `bash deploy/implantar.sh atualizar-vitrine` no servidor.
 
 ---
 
 ## 🛠️ Implantação no Servidor Linux
 
-Para atualizar ou instalar no servidor (`~/acesso-src`):
+Para instalar do zero no servidor (`~/acesso-src`):
 
 ```bash
 # 1. Clonar ou atualizar o repositório no servidor

@@ -3,7 +3,7 @@ import os
 import sqlite3
 import time
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .config import config
 from .seguranca import novo_codigo
@@ -46,20 +46,28 @@ CREATE TABLE IF NOT EXISTS eventos (
     tipo TEXT NOT NULL,
     detalhe TEXT
 );
+-- Quem foi excluído no painel não volta sozinho pela sincronização com a tabela crachas
+CREATE TABLE IF NOT EXISTS crachas_excluidos (
+    cracha TEXT PRIMARY KEY COLLATE NOCASE,
+    quando TEXT NOT NULL
+);
 """
 
-# Sistemas que rodam no servidor Linux; o administrador pode incluir outros pelo painel
+# Sistemas de uma instalação nova; depois disso quem manda é o painel
 SISTEMAS_INICIAIS = [
     ("bobinas", "Inventário de Bobinas", "/bobinas/", 1),
     ("imobilizados", "Controle de Imobilizados", "/imobilizados/", 2),
     ("visionstock", "VisionStock (Almox)", "/visionstock/", 3),
     ("rateios", "Rateios", "/rateios/", 4),
     ("terceirizados", "Portaria de Terceiros", "/terceirizados/", 5),
+    ("rh", "Entrevistas com IA (RH)", "/rh/", 6),
+    ("minmax", "Estoque Mín/Máx", "/minmax/", 7),
+    ("escuta", "Jornada da Escuta", "/escuta/", 8),
 ]
 
 
 def agora() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 @contextmanager
@@ -98,13 +106,8 @@ def iniciar() -> None:
 
         garantir_codigos(con)
 
-        for s_slug, s_nome, s_caminho, s_ordem in SISTEMAS_INICIAIS:
-            con.execute(
-                "INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?) "
-                "ON CONFLICT(slug) DO UPDATE SET caminho = excluded.caminho, nome = excluded.nome "
-                "WHERE sistemas.caminho != excluded.caminho OR sistemas.nome != excluded.nome",
-                (s_slug, s_nome, s_caminho, s_ordem),
-            )
+        if con.execute("SELECT COUNT(*) FROM sistemas").fetchone()[0] == 0:
+            con.executemany("INSERT INTO sistemas (slug, nome, caminho, ordem) VALUES (?, ?, ?, ?)", SISTEMAS_INICIAIS)
 
 
 def registrar(con, usuario: str | None, tipo: str, detalhe: str = "") -> None:
@@ -120,20 +123,19 @@ def _usuario_dict(con, linha) -> dict:
     sistemas = [r[0] for r in con.execute(
         "SELECT sistema_slug FROM permissoes WHERE usuario_id = ? ORDER BY sistema_slug", (linha["id"],)
     )]
-    chaves = linha.keys() if hasattr(linha, "keys") else []
     return {
         "id": linha["id"],
         "usuario": linha["usuario"],
         "nome": linha["nome"],
         "admin": bool(linha["admin"]),
         "ativo": bool(linha["ativo"]),
-        "email": linha["email"] if ("email" in chaves and linha["email"]) else "",
-        "setor": linha["setor"] if ("setor" in chaves and linha["setor"]) else "",
-        "unidade": linha["unidade"] if "unidade" in chaves else None,
+        "email": linha["email"] or "",
+        "setor": linha["setor"] or "",
+        "unidade": linha["unidade"],
         # Sem senha: a pessoa cria a própria senha no primeiro acesso
         "senha_pendente": linha["senha_hash"] == "",
         # De fora da empresa, o primeiro acesso pede este código (o administrador repassa)
-        "codigo_acesso": (linha["codigo_acesso"] if "codigo_acesso" in chaves else "") if linha["senha_hash"] == "" else "",
+        "codigo_acesso": linha["codigo_acesso"] if linha["senha_hash"] == "" else "",
         "criado_em": linha["criado_em"],
         "sistemas": sistemas,
     }
@@ -152,10 +154,22 @@ def buscar_por_login(con, identificador: str):
     identificador = (identificador or "").strip()
     if not identificador:
         return None
+    linha = con.execute("SELECT * FROM usuarios WHERE usuario = ? COLLATE NOCASE", (identificador,)).fetchone()
+    if linha or "@" not in identificador:
+        return linha
+    # E-mail só vale como login quando é de uma pessoa só
+    linhas = con.execute("SELECT * FROM usuarios WHERE email = ? COLLATE NOCASE", (identificador,)).fetchall()
+    return linhas[0] if len(linhas) == 1 else None
+
+
+def email_em_uso(con, email: str, usuario_id: int | None = None) -> bool:
     return con.execute(
-        "SELECT * FROM usuarios WHERE usuario = ? COLLATE NOCASE OR email = ? COLLATE NOCASE",
-        (identificador, identificador),
-    ).fetchone()
+        "SELECT 1 FROM usuarios WHERE email = ? COLLATE NOCASE AND id IS NOT ?", (email, usuario_id)
+    ).fetchone() is not None
+
+
+def marcar_excluido(con, usuario: str) -> None:
+    con.execute("INSERT OR REPLACE INTO crachas_excluidos (cracha, quando) VALUES (?, ?)", (usuario, agora()))
 
 
 def criar_usuario(
@@ -163,6 +177,7 @@ def criar_usuario(
     email: str = "", setor: str = "", unidade: int | None = None,
 ) -> int:
     codigo = "" if senha_hash else novo_codigo()
+    con.execute("DELETE FROM crachas_excluidos WHERE cracha = ?", (usuario.strip(),))
     cur = con.execute(
         "INSERT INTO usuarios (usuario, nome, senha_hash, admin, ativo, email, setor, unidade, codigo_acesso, criado_em) "
         "VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)",
@@ -181,47 +196,32 @@ def garantir_codigos(con) -> None:
 
 
 def importar_crachas(con, crachas: list, sistemas: list[str]) -> dict:
-    """Cria ou atualiza usuários no banco local a partir da base do Supabase ou lista de tuplas."""
+    """Cria ou atualiza usuários a partir da tabela crachas (dicionários de crachas.py ou tuplas (crachá, nome)).
+    De lá só vêm nome, setor, unidade e e-mail. Admin e senha são do Portal: quem é novo entra sem senha e sem ser admin."""
+    excluidos = {r[0].lower() for r in con.execute("SELECT cracha FROM crachas_excluidos")}
     novos, atualizados = 0, 0
     for item in crachas:
         if isinstance(item, dict):
-            cracha = item["cracha"]
-            nome = item.get("nome") or f"Crachá {cracha}"
-            setor = item.get("setor") or ""
-            unidade = item.get("unidade")
-            admin = item.get("admin", False)
-            email = item.get("email") or ""
-            senha_hash = item.get("senha_hash") or ""
+            cracha, nome, setor, unidade, email = item["cracha"], item.get("nome") or "", item.get("setor") or "", item.get("unidade"), item.get("email") or ""
         else:
             cracha, nome = item
-            setor, unidade, admin, email, senha_hash = "", None, False, "", ""
+            setor, unidade, email = "", None, ""
+        if cracha.lower() in excluidos:
+            continue
 
-        existente = buscar_por_login(con, cracha)
+        existente = con.execute("SELECT id FROM usuarios WHERE usuario = ? COLLATE NOCASE", (cracha,)).fetchone()
         if existente:
-            nova_senha = senha_hash if (senha_hash and not existente["senha_hash"]) else existente["senha_hash"]
             con.execute(
-                "UPDATE usuarios SET nome = ?, admin = ?, email = COALESCE(NULLIF(?, ''), email), "
-                "setor = COALESCE(NULLIF(?, ''), setor), unidade = COALESCE(?, unidade), senha_hash = ? WHERE id = ?",
-                (nome, int(admin or existente["admin"]), email, setor, unidade, nova_senha, existente["id"]),
+                "UPDATE usuarios SET nome = COALESCE(NULLIF(?, ''), nome), email = COALESCE(NULLIF(?, ''), email), "
+                "setor = COALESCE(NULLIF(?, ''), setor), unidade = COALESCE(?, unidade) WHERE id = ?",
+                (nome, email, setor, unidade, existente["id"]),
             )
             atualizados += 1
         else:
-            criar_usuario(con, cracha, nome, senha_hash, admin, sistemas, email=email, setor=setor, unidade=unidade)
+            criar_usuario(con, cracha, nome or f"Crachá {cracha}", "", False, sistemas, email=email, setor=setor, unidade=unidade)
             novos += 1
     garantir_codigos(con)
     return {"novos": novos, "existentes": atualizados}
-
-
-def sincronizar_com_supabase(con, sistemas: list[str] | None = None) -> dict:
-    """Busca a base completa de colaboradores do Supabase e sincroniza com o banco local."""
-    from .crachas import buscar_crachas
-    crachas = buscar_crachas()
-    resultado = importar_crachas(con, crachas, sistemas or [])
-    registrar(
-        con, "sistema", "sincronizou_supabase",
-        f"{resultado['novos']} novos cadastrados, {resultado['existentes']} atualizados da base Supabase",
-    )
-    return resultado
 
 
 def definir_sistemas(con, usuario_id: int, sistemas: list[str]) -> None:
