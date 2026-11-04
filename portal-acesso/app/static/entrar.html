@@ -50,9 +50,9 @@
           </div>
         </div>
 
-        <!-- Campo E-mail Corporativo (solicitado caso ainda não esteja no cadastro) -->
+        <!-- Campo E-mail Corporativo: opcional, porque nem todo colaborador tem e-mail da empresa -->
         <div id="bloco-email" class="oculto" style="margin-top: 14px;">
-          <label for="email">E-mail corporativo</label>
+          <label for="email">E-mail corporativo (opcional)</label>
           <input id="email" type="email" autocomplete="email" placeholder="ex.: nome.sobrenome@videplast.com.br" spellcheck="false">
         </div>
 
@@ -89,14 +89,6 @@
       <button class="principal largo" type="submit" id="botao">
         <span id="botao-texto">Continuar</span>
       </button>
-
-      <!-- Atalho de Demonstração para Pular Login -->
-      <a class="botao secundario largo" href="/acesso/" style="margin-top: 12px; font-size: 0.9rem; text-decoration: none;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-        </svg>
-        <span>Pular Login e Ver Tela Principal</span>
-      </a>
 
       <!-- Mensagens de Erro -->
       <div class="erro" id="erro" role="alert" aria-live="assertive"></div>
@@ -159,14 +151,7 @@
       campo('nova').required = campo('repetir').required = novo === 'criar';
       campo('codigo').required = novo === 'criar' && precisaCodigo;
 
-      if (novo === 'criar') {
-        const precisaPedirEmail = dadosIdentificacao && dadosIdentificacao.pede_email;
-        mostra('bloco-email', precisaPedirEmail);
-        campo('email').required = Boolean(precisaPedirEmail);
-        if (dadosIdentificacao && dadosIdentificacao.email_existente) {
-          campo('email').value = dadosIdentificacao.email_existente;
-        }
-      }
+      mostra('bloco-email', novo === 'criar' && Boolean(dadosIdentificacao && dadosIdentificacao.pede_email));
 
       const saudacaoNome = (dadosIdentificacao && dadosIdentificacao.nome) ? `Olá, ${dadosIdentificacao.nome}! ` : '';
       campo('dica').textContent = {
@@ -183,7 +168,7 @@
       const alvoFoco = {
         cracha: 'usuario',
         senha: 'senha',
-        criar: (dadosIdentificacao && dadosIdentificacao.pede_email) ? 'email' : (precisaCodigo ? 'codigo' : 'nova')
+        criar: 'nova',
       }[novo];
       setTimeout(() => { const el = campo(alvoFoco); if (el) el.focus(); }, 80);
     }
@@ -211,12 +196,6 @@
       if (passo === 'criar') {
         const nova = campo('nova').value;
         const repetir = campo('repetir').value;
-        const emailEl = campo('email');
-        if (dadosIdentificacao && dadosIdentificacao.pede_email && !emailEl.value.trim()) {
-          erro.textContent = 'Por favor, informe seu e-mail corporativo.';
-          emailEl.focus();
-          return;
-        }
         if (nova.length < 6) {
           erro.textContent = 'A senha deve conter no mínimo 6 caracteres.';
           campo('nova').focus();

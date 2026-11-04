@@ -70,8 +70,10 @@
       }
     });
 
+    const ponto = document.createElement('span');
+    ponto.style.cssText = 'display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; margin-right:8px; box-shadow:0 0 6px rgba(16,185,129,0.7);';
     const nome = document.createElement('span');
-    nome.innerHTML = `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; margin-right:8px; box-shadow:0 0 6px rgba(16,185,129,0.7);"></span>${dados.nome}`;
+    nome.append(ponto, dados.nome);
 
     const div = barra(
       `<span></span>`

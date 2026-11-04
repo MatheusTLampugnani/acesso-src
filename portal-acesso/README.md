@@ -1,7 +1,7 @@
 # Portal de Acesso
 
 Login único e controle de **quais usuários veem cada sistema** do servidor (Bobinas, Imobilizados,
-VisionStock, Rateios, Portaria de Terceiros e os que forem incluídos depois).
+VisionStock, Rateios, Portaria de Terceiros, RH, Mín/Máx, Jornada da Escuta e os que forem incluídos depois).
 
 - **Painel** em `/acesso/`: matriz usuário × sistema (marca e salva na hora), cadastro, ativar/desativar,
   redefinir senha, cadastro de sistemas e histórico (logins, alterações e acessos negados).
@@ -10,6 +10,15 @@ VisionStock, Rateios, Portaria de Terceiros e os que forem incluídos depois).
 - **Portal** (`/`): um script esconde os cards que o usuário não pode abrir e mostra quem está logado.
 - **Crachás importados** da base do VisionStock (tabela `crachas` do Supabase): o login é o número do crachá
   e cada pessoa cria a própria senha no primeiro acesso. O botão "Senha" com o campo vazio faz a pessoa criar outra.
+  Da tabela vêm só nome, setor, unidade e e-mail. **Admin e senha são do Portal**: o `admin` de `crachas` vale para
+  outros sistemas e não dá nenhum poder aqui. Quem é excluído no painel não volta pela sincronização.
+- **Primeiro acesso de fora da empresa** (internet, pelo Tailscale Funnel) pede também um **código de 6 números**,
+  que o administrador vê na matriz de usuários ao lado de "1º Acesso". Na rede da empresa (IP 10.x, 172.16-31.x,
+  192.168.x) ou pela Tailscale (cabeçalho `Tailscale-User-Login`, que a Tailscale apaga dos pedidos vindos do Funnel)
+  o código não é pedido. 5 códigos errados travam por alguns minutos; cada erro fica no histórico.
+- **Usuário criado no portal com login numérico** também entra na tabela `crachas` do Supabase (se ainda não existir),
+  porque o Bobinas confere o crachá lá depois do login. Para quem foi criado antes disso:
+  `docker compose exec acesso python -m app.cli sincronizar-crachas`.
 - **Usuários em SQLite** dentro de um volume Docker: funciona sem internet e não depende do Supabase.
   Senhas com scrypt; sessões guardadas só como hash e derrubadas ao desativar o usuário ou trocar a senha.
 

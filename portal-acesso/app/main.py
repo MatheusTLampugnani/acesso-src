@@ -1,4 +1,6 @@
 """Aplicação FastAPI do Portal de Acesso."""
+import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,23 +8,29 @@ from fastapi.responses import RedirectResponse
 
 from . import banco
 from .config import config
+from .crachas import buscar_crachas
 from .rotas import router
+
+log = logging.getLogger(__name__)
+
+
+def _sincronizar_crachas() -> None:
+    """Traz nome, setor, unidade e e-mail da tabela crachas e cria quem ainda não está no Portal, sem nenhum sistema."""
+    try:
+        crachas = buscar_crachas()
+        with banco.conexao() as con:
+            resultado = banco.importar_crachas(con, crachas, [])
+            banco.registrar(con, "sistema", "sincronizou_supabase", f"{resultado['novos']} novos, {resultado['existentes']} atualizados")
+    except Exception as erro:  # o Portal funciona sem o Supabase
+        log.warning("Não sincronizou com a tabela crachas: %s", erro)
 
 
 @asynccontextmanager
 async def ciclo_de_vida(_app: FastAPI):
     banco.iniciar()
     if config.SUPABASE_URL and config.SUPABASE_CHAVE:
-        import threading
-        def _sincronizar_fundo():
-            try:
-                with banco.conexao() as con:
-                    banco.sincronizar_com_supabase(con)
-            except Exception:
-                pass
-        threading.Thread(target=_sincronizar_fundo, daemon=True).start()
+        threading.Thread(target=_sincronizar_crachas, daemon=True).start()
     yield
-
 
 
 app = FastAPI(title="Portal de Acesso", docs_url=None, redoc_url=None, openapi_url=None, lifespan=ciclo_de_vida)

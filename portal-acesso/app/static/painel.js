@@ -135,7 +135,7 @@ function desenharMatriz() {
     el('th', {}, 'Colaborador / Crachá'),
     sistemas.map((s) => el('th', { class: 'marca', title: `${s.nome} (${s.caminho})` },
       el('span', {}, s.nome),
-      s.aberto ? el('div', { class: 'selo sucesso', style: 'margin-top:4px; font-size:0.68rem;' },) : null,
+      s.aberto ? el('div', { class: 'selo sucesso', style: 'margin-top:4px; font-size:0.68rem;' }, 'Livre') : null,
     )),
     el('th', { class: 'marca' }, 'Admin'),
     el('th', { class: 'marca' }, 'Ativo'),
@@ -429,7 +429,7 @@ async function excluirUsuario(u) {
   const confirmou = await modalConfirm({
     titulo: 'Excluir Colaborador',
     mensagem: `Deseja realmente remover o cadastro de ${u.nome} (${u.usuario})?`,
-    detalhe: 'Dica: Caso deseje apenas impedir o acesso temporariamente, basta desmarcar a caixa "Ativo".',
+    detalhe: 'O crachá continua no cadastro da empresa, mas não volta para o Portal até alguém criar o usuário de novo aqui. Para impedir o acesso só por um tempo, basta desmarcar a caixa "Ativo".',
     botaoConfirmar: 'Excluir Definitivamente',
     botaoCancelar: 'Cancelar',
     perigoso: true,
@@ -505,6 +505,34 @@ window.selecionarTodosSistemas = function(containerId, marcar) {
 
 
 let filtroEventoTipo = '';
+
+// Chips do histórico: o valor de data-tipo em painel.html e os tipos de evento que cada um mostra
+const GRUPOS_DE_EVENTO = {
+  login: /login|senha/,
+  atualizou_permissoes: /^alterou/,
+  usuario: /criou_usuario|excluiu|import|sincroniz|cadastrou|criou_sistema/,
+  negado: /negado|falhou|errado/,
+};
+
+const ROTULOS_DE_EVENTO = {
+  login: ['sucesso', 'Login Realizado'],
+  login_falhou: ['perigo', 'Login Recusado'],
+  codigo_errado: ['perigo', 'Código Errado'],
+  negado: ['perigo', 'Acesso Bloqueado'],
+  seria_negado: ['perigo', 'Seria Bloqueado'],
+  supabase_falhou: ['perigo', 'Falha no Supabase'],
+  criou_senha: ['sucesso', 'Criou a Senha'],
+  trocou_senha: ['sucesso', 'Trocou a Senha'],
+  criou_usuario: ['sucesso', 'Usuário Criado'],
+  alterou_usuario: ['admin', 'Usuário Alterado'],
+  excluiu_usuario: ['perigo', 'Usuário Excluído'],
+  criou_sistema: ['sucesso', 'Sistema Criado'],
+  alterou_sistema: ['admin', 'Sistema Alterado'],
+  excluiu_sistema: ['perigo', 'Sistema Excluído'],
+  importou_crachas: ['sucesso', 'Importação de Crachás'],
+  sincronizou_supabase: ['sucesso', 'Sincronização'],
+  cadastrou_cracha: ['sucesso', 'Crachá Cadastrado'],
+};
 
 function desenharSistemas() {
   const tabela = document.getElementById('tabela-sistemas');
@@ -618,14 +646,8 @@ function desenharEventosFiltrados() {
   let filtrados = eventosCache;
 
   if (filtroEventoTipo) {
-    filtrados = filtrados.filter((ev) => {
-      const t = (ev.tipo || '').toLowerCase();
-      if (filtroEventoTipo === 'login') return t.includes('login');
-      if (filtroEventoTipo === 'atualizou_permissoes') return t.includes('permiss') || t.includes('atualizou');
-      if (filtroEventoTipo === 'usuario') return t.includes('usuario') || t.includes('criou') || t.includes('import');
-      if (filtroEventoTipo === 'negado') return t.includes('negado') || t.includes('bloqueio') || t.includes('falhou');
-      return t.includes(filtroEventoTipo);
-    });
+    const grupo = GRUPOS_DE_EVENTO[filtroEventoTipo];
+    filtrados = filtrados.filter((ev) => grupo.test(ev.tipo || ''));
   }
 
   if (termo) {
@@ -654,22 +676,8 @@ function desenharEventosFiltrados() {
   };
 
   const badgeTipo = (tipo) => {
-    let classe = 'selo';
-    let label = tipo.replaceAll('_', ' ');
-    if (tipo.includes('login')) {
-      classe += ' sucesso';
-      label = 'Login Realizado';
-    } else if (tipo.includes('permiss')) {
-      classe += ' admin';
-      label = 'Permissões Alteradas';
-    } else if (tipo.includes('criou') || tipo.includes('import')) {
-      classe += ' sucesso';
-      label = 'Cadastro / Importação';
-    } else if (tipo.includes('negado') || tipo.includes('falhou')) {
-      classe += ' perigo';
-      label = 'Acesso Bloqueado';
-    }
-    return el('span', { class: classe }, label);
+    const [cor, rotulo] = ROTULOS_DE_EVENTO[tipo] || ['', tipo.replaceAll('_', ' ')];
+    return el('span', { class: `selo ${cor}` }, rotulo);
   };
 
   const linhas = filtrados.map((ev) => {
@@ -753,10 +761,10 @@ function desenharMinhaConta() {
   if (crachaEl) crachaEl.textContent = `#${eu.usuario}`;
 
   const setorEl = document.getElementById('conta-setor');
-  if (setorEl) setorEl.textContent = eu.setor || 'Setor Geral';
+  if (setorEl) setorEl.textContent = eu.setor || 'Setor não informado';
 
   const unidadeEl = document.getElementById('conta-unidade');
-  if (unidadeEl) unidadeEl.textContent = `Unidade ${eu.unidade || 1001}`;
+  if (unidadeEl) unidadeEl.textContent = eu.unidade ? `Unidade ${eu.unidade}` : 'Unidade não informada';
 
   const emailEl = document.getElementById('conta-email');
   if (emailEl) emailEl.textContent = eu.email || 'E-mail corporativo não informado';

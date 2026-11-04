@@ -53,9 +53,11 @@
   <script src="/acesso/comum.js"></script>
   <script>
     api('/api/eu').then((eu) => {
-      document.getElementById('mensagem-sem-acesso').innerHTML =
-        `Você entrou como <strong>${eu.nome}</strong> (${eu.usuario}), mas este perfil não tem permissão para abrir esta aplicação.<br><br>` +
-        `Para solicitar acesso, entre em contato com o administrador de TI ou gestor da área.`;
+      document.getElementById('mensagem-sem-acesso').replaceChildren(
+        'Você entrou como ', el('strong', {}, eu.nome), ` (${eu.usuario}), mas este perfil não tem permissão para abrir esta aplicação.`,
+        el('br'), el('br'),
+        'Para solicitar acesso, entre em contato com o administrador de TI ou gestor da área.',
+      );
     }).catch(() => {});
   </script>
 </body>
