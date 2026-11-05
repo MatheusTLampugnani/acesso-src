@@ -266,6 +266,50 @@ def test_sistema_liberado_para_todos(cria_cliente):
     assert [s["slug"] for s in c.get("/acesso/api/eu").json()["sistemas"]] == ["bobinas"]
 
 
+def test_ver_todas_as_filiais(cria_cliente):
+    c = cria_cliente()
+    entrar(c)
+    assert c.get("/acesso/api/eu").json()["todas_filiais"] is True  # administrador do Portal sempre vê todas
+    joao = cria_operador(c, [])
+    assert joao["todas_filiais"] is False
+
+    c.cookies.clear()
+    entrar(c, "joao", "senha123")
+    assert c.get("/acesso/api/eu").json()["todas_filiais"] is False
+    # Quem não é administrador não libera a si mesmo
+    assert c.put(f"/acesso/api/usuarios/{joao['id']}", json={"todas_filiais": True}, headers=H).status_code == 403
+
+    c.cookies.clear()
+    entrar(c)
+    r = c.put(f"/acesso/api/usuarios/{joao['id']}", json={"todas_filiais": True}, headers=H)
+    assert r.json()["todas_filiais"] is True
+    assert "todas_filiais=sim" in str(c.get("/acesso/api/eventos").json())
+
+    c.cookies.clear()
+    entrar(c, "joao", "senha123")
+    assert c.get("/acesso/api/eu").json()["todas_filiais"] is True
+
+    c.cookies.clear()
+    entrar(c)
+    c.put(f"/acesso/api/usuarios/{joao['id']}", json={"todas_filiais": False}, headers=H)
+    c.cookies.clear()
+    entrar(c, "joao", "senha123")
+    assert c.get("/acesso/api/eu").json()["todas_filiais"] is False
+
+
+def test_migra_banco_antigo_sem_todas_as_filiais(cria_cliente, tmp_path):
+    import sqlite3
+    from app import banco
+    c = cria_cliente()
+    con = sqlite3.connect(tmp_path / "acesso.db")
+    con.executescript("ALTER TABLE usuarios DROP COLUMN todas_filiais;")
+    con.close()
+    banco.iniciar()
+    with banco.conexao() as con:
+        assert all(u["todas_filiais"] is False for u in banco.listar_usuarios(con))
+    assert entrar(c).status_code == 200
+
+
 def test_migra_banco_antigo_sem_coluna_aberto(cria_cliente, tmp_path):
     import sqlite3
     from app import banco

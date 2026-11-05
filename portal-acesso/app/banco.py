@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email TEXT COLLATE NOCASE,
     setor TEXT,
     unidade INTEGER,
+    todas_filiais INTEGER NOT NULL DEFAULT 0,  -- 1 = vê todas as filiais; sem isso, os sistemas mostram só a unidade da pessoa
     codigo_acesso TEXT NOT NULL DEFAULT '',
     criado_em TEXT NOT NULL
 );
@@ -103,6 +104,8 @@ def iniciar() -> None:
             con.execute("ALTER TABLE usuarios ADD COLUMN unidade INTEGER")
         if "codigo_acesso" not in colunas_usr:
             con.execute("ALTER TABLE usuarios ADD COLUMN codigo_acesso TEXT NOT NULL DEFAULT ''")
+        if "todas_filiais" not in colunas_usr:
+            con.execute("ALTER TABLE usuarios ADD COLUMN todas_filiais INTEGER NOT NULL DEFAULT 0")
 
         garantir_codigos(con)
 
@@ -132,6 +135,7 @@ def _usuario_dict(con, linha) -> dict:
         "email": linha["email"] or "",
         "setor": linha["setor"] or "",
         "unidade": linha["unidade"],
+        "todas_filiais": bool(linha["todas_filiais"]),
         # Sem senha: a pessoa cria a própria senha no primeiro acesso
         "senha_pendente": linha["senha_hash"] == "",
         # De fora da empresa, o primeiro acesso pede este código (o administrador repassa)
