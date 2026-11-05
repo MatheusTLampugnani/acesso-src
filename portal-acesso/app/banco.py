@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS crachas_excluidos (
 SISTEMAS_INICIAIS = [
     ("bobinas", "Inventário de Bobinas", "/bobinas/", 1),
     ("imobilizados", "Controle de Imobilizados", "/imobilizados/", 2),
-    ("visionstock", "VisionStock (Almox)", "/visionstock/", 3),
+    ("visionstock", "VisionStock (Almoxarifado)", "/visionstock/", 3),
     ("rateios", "Rateios", "/rateios/", 4),
     ("terceirizados", "Portaria de Terceiros", "/terceirizados/", 5),
     ("rh", "Entrevistas com IA (RH)", "/rh/", 6),
-    ("minmax", "Estoque Mín/Máx", "/minmax/", 7),
+    ("minmax", "Estoque Mín/Máx (Almoxarifado)", "/minmax/", 7),
     ("escuta", "Jornada da Escuta", "/escuta/", 8),
 ]
 

@@ -2,9 +2,10 @@
 import logging
 import threading
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from . import banco
 from .config import config
@@ -12,6 +13,7 @@ from .crachas import buscar_crachas
 from .rotas import router
 
 log = logging.getLogger(__name__)
+PORTAL_VITRINE = Path(__file__).resolve().parent.parent / "deploy" / "portal-vitrine.html"
 
 
 def _sincronizar_crachas() -> None:
@@ -39,4 +41,11 @@ app.include_router(router)
 
 @app.get(config.BASE, include_in_schema=False)
 def sem_barra():
+    return RedirectResponse(config.BASE + "/")
+
+
+@app.get("/", include_in_schema=False)
+def vitrine_raiz():
+    if PORTAL_VITRINE.is_file():
+        return FileResponse(PORTAL_VITRINE, headers={"Cache-Control": "no-cache"})
     return RedirectResponse(config.BASE + "/")

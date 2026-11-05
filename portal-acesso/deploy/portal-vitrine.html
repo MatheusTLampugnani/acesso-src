@@ -4,518 +4,546 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portal de Aplicações Corporativas · Videplast</title>
-  <meta name="description" content="Acesso unificado aos sistemas industriais, logísticos e administrativos da Videplast.">
+  <title>Portal de Aplicações · Videplast</title>
+  <meta name="description"
+    content="Acesso unificado aos sistemas operacionais, industriais e administrativos da Videplast.">
   <link rel="icon" href="/favicon.ico">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/acesso/estilo.css">
   <style>
-    :root {
-      --bg: #090d16;
-      --bg-card: rgba(17, 24, 39, 0.75);
-      --bg-card-hover: rgba(30, 41, 59, 0.85);
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(220, 38, 38, 0.4);
-      --texto: #f8fafc;
-      --texto-suave: #94a3b8;
-      --vermelho-videplast: #dc2626;
-      --vermelho-brilho: rgba(220, 38, 38, 0.25);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--texto);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    /* Fundo dinâmico com gradientes suaves industriais */
-    .fundo-gradiente {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background:
-        radial-gradient(circle at 15% 15%, rgba(220, 38, 38, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 85% 25%, rgba(37, 99, 235, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
-        #090d16;
-    }
-
-    header.topo {
-      padding: 24px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .topo-brand {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .logotipo {
-      height: 38px;
-      width: auto;
-      object-fit: contain;
-    }
-
-    .divisor-topo {
-      width: 1px;
-      height: 24px;
-      background: var(--border);
-    }
-
-    .topo-titulo {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      color: var(--texto);
-    }
-
-    .topo-link-gestao {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: var(--texto);
-      text-decoration: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-
-    .topo-link-gestao:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-1px);
-    }
-
-    main {
-      flex: 1;
+    .portal-container {
       max-width: 1240px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 56px 24px 80px;
+      margin: 28px auto 60px;
+      padding: 0 20px;
     }
 
-    .hero-secao {
+    .portal-cartao-principal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 40px 36px 48px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .portal-hero {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 38px;
     }
 
-    .hero-selo {
+    .badge-unidade {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      background: rgba(220, 38, 38, 0.12);
-      border: 1px solid rgba(220, 38, 38, 0.3);
-      color: #fca5a5;
-      font-size: 12.5px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      background: var(--red-subtle);
+      border: 1px solid rgba(229, 62, 62, 0.25);
+      color: var(--red);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-
-    .ponto-pulso {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
-      animation: pulso 2s infinite;
-    }
-
-    @keyframes pulso {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    .hero-titulo {
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
       margin-bottom: 14px;
     }
 
-    .hero-titulo span {
-      background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .portal-hero h2 {
+      font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.025em;
+      margin-bottom: 8px;
     }
 
-    .hero-subtitulo {
-      font-size: clamp(15px, 2vw, 17px);
-      color: var(--texto-suave);
-      max-width: 680px;
+    .portal-hero p {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      max-width: 580px;
       margin: 0 auto;
-      line-height: 1.6;
     }
 
-    /* Grade de Sistemas */
     .grade-sistemas {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 22px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 860px) {
+      .grade-sistemas {
+        grid-template-columns: 1fr;
+      }
+
+      .portal-cartao-principal {
+        padding: 28px 20px 36px;
+      }
     }
 
     .app-card {
-      background: var(--bg-card);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 26px;
+      border-radius: var(--radius-lg);
+      padding: 24px;
       text-decoration: none;
-      color: var(--texto);
+      color: inherit;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-
-    .app-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: transparent;
-      transition: background 0.25s ease;
     }
 
     .app-card:hover {
-      background: var(--bg-card-hover);
+      background: #ffffff;
       border-color: var(--border-hover);
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6), 0 0 24px -6px var(--vermelho-brilho);
-    }
-
-    .app-card:hover::before {
-      background: linear-gradient(90deg, #dc2626, #ef4444);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      text-decoration: none;
     }
 
     .card-topo {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .card-icone {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: #f87171;
-      transition: transform 0.25s ease;
-    }
-
-    .app-card:hover .card-icone {
-      transform: scale(1.08);
-      background: rgba(220, 38, 38, 0.15);
-      border-color: rgba(220, 38, 38, 0.35);
-      color: #ffffff;
-    }
-
-    .card-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.06);
-      color: #94a3b8;
-      border: 1px solid var(--border);
-    }
-
-    .card-corpo h3 {
-      font-size: 19px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
-    }
-
-    .card-corpo p {
-      font-size: 14px;
-      color: var(--texto-suave);
-      line-height: 1.55;
-      margin-bottom: 22px;
-    }
-
-    .card-rodape {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 13px;
-      font-weight: 600;
-      color: #60a5fa;
-    }
-
-    .card-rodape svg {
       transition: transform 0.2s ease;
     }
 
-    .app-card:hover .card-rodape svg {
+    .app-card:hover .card-icone {
+      transform: scale(1.06);
+    }
+
+    .icone-vermelho {
+      background: var(--red-subtle);
+      border: 1px solid rgba(229, 62, 62, 0.22);
+      color: var(--red);
+    }
+
+    .icone-azul {
+      background: var(--blue-soft);
+      border: 1px solid var(--blue-border);
+      color: var(--blue);
+    }
+
+    .icone-verde {
+      background: var(--green-soft);
+      border: 1px solid var(--green-border);
+      color: #059669;
+    }
+
+    .icone-esmeralda {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #10b981;
+    }
+
+    .icone-laranja {
+      background: var(--yellow-soft);
+      border: 1px solid var(--yellow-border);
+      color: var(--yellow);
+    }
+
+    .icone-amarelo {
+      background: #fefce8;
+      border: 1px solid #fef08a;
+      color: #ca8a04;
+    }
+
+    .status-pill {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .status-online {
+      background: var(--green-soft);
+      border: 1px solid var(--green-border);
+      color: #047857;
+    }
+
+    .status-teste {
+      background: var(--yellow-soft);
+      border: 1px solid var(--yellow-border);
+      color: #b45309;
+    }
+
+    .card-corpo h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .card-corpo p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.52;
+      margin-bottom: 20px;
+      min-height: 40px;
+    }
+
+    .card-botao {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 600;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: all 0.15s ease;
+    }
+
+    .app-card:hover .card-botao {
+      background: var(--surface3);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .card-botao.botao-destaque-vermelho {
+      background: var(--red);
+      border-color: var(--red-hover);
+      color: #ffffff;
+    }
+
+    .app-card:hover .card-botao.botao-destaque-vermelho {
+      background: var(--red-hover);
+      border-color: var(--red-active);
+      color: #ffffff;
+    }
+
+    .card-botao svg {
+      transition: transform 0.2s ease;
+      color: inherit;
+    }
+
+    .app-card:hover .card-botao svg {
       transform: translateX(4px);
     }
 
-    footer {
-      padding: 24px 32px;
+    footer.portal-rodape {
       text-align: center;
-      border-top: 1px solid var(--border);
-      color: #64748b;
-      font-size: 13px;
+      padding: 32px 20px 48px;
+      color: var(--text-faint);
+      font-size: 0.84rem;
     }
   </style>
 </head>
 
 <body>
-  <div class="fundo-gradiente"></div>
-
-  <header class="topo">
-    <div class="topo-brand">
-      <img src="/acesso/assets/videplast-brand.png" alt="Videplast" class="logotipo" onerror="this.style.display='none'">
-      <div class="divisor-topo"></div>
-      <div class="topo-titulo">Sistemas Integrados</div>
+  <header class="topo-painel">
+    <div class="topo-painel-brand">
+      <img src="/acesso/assets/videplast-brand.png" alt="Videplast" class="logotipo-topo">
+      <h1 id="titulo-painel">Portal de Aplicações</h1>
     </div>
-    <div>
-      <a href="/acesso/" class="topo-link-gestao" title="Painel de controle e permissões">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="topo-acoes">
+      <span id="quem" style="display: none;"></span>
+      <a class="botao secundario" id="btn-gestao" href="/acesso/" title="Ir para a gestão de acessos" style="display: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
         </svg>
-        <span>Gestão de Acessos</span>
+        Gestão de Acessos
+      </a>
+      <button type="button" class="secundario" id="btn-sair" title="Encerrar sessão atual" style="display: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Sair
+      </button>
+      <a class="botao principal" id="btn-entrar" href="/acesso/entrar?volta=/" style="display: none;">
+        Entrar no Portal
       </a>
     </div>
   </header>
 
-  <main>
-    <div class="hero-secao">
-      <div class="hero-selo">
-        <span class="ponto-pulso"></span>
-        Servidor Operacional · Videplast
+  <main class="portal-container">
+    <div class="portal-cartao-principal">
+
+      <section class="portal-hero">
+        <h2>Portal de Aplicações</h2>
+        <p>Selecione o sistema que você deseja acessar para iniciar suas operações</p>
+      </section>
+
+      <div class="grade-sistemas" id="vitrine-sistemas">
+        <a href="/imobilizados/" class="app-card" title="Acessar Controle de Imobilizados">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-vermelho">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path
+                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                  </path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v2.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Controle de Imobilizados</h3>
+              <p>Consulta, inventário físico de ativos por centro de custo, histórico de alterações e conferência via
+                leitor ou câmera.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar Imobilizados</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/bobinas/" class="app-card" title="Acessar Inventário de Bobinas">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-azul">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                  <line x1="7" y1="8" x2="7" y2="16"></line>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="17" y1="8" x2="17" y2="16"></line>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v2.3</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Inventário de Bobinas</h3>
+              <p>Contagem física de bobinas industriais, leitura de lotes e romaneios, conciliação com SAP e suporte
+                Offline-First.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar Bobinas</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/visionstock/" class="app-card" title="Acessar VisionStock Almoxarifado">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-verde">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <line x1="12" y1="11" x2="12" y2="17"></line>
+                  <line x1="8" y1="14" x2="8" y2="17"></line>
+                  <line x1="16" y1="8" x2="16" y2="17"></line>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v3.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>VisionStock Almoxarifado</h3>
+              <p>Contagem física do almoxarifado, conciliação com a planilha SAP (ETIQUETAS), leitura por drone e
+                operação offline.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar VisionStock</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/rateios/" class="app-card" title="Acessar Rateios">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-azul">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+                  <path d="M12 12L4.93 4.93"></path>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v1.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Rateios</h3>
+              <p>Rateio mensal de impressão e telefonia por setor, cruzando a fatura com a lista de equipamentos e
+                chips.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar Rateios</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/terceirizados/" class="app-card" title="Acessar Portaria de Terceiros">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-esmeralda">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                  <circle cx="12" cy="9" r="2.2"></circle>
+                  <path d="M8.5 14.5c.8-1 2-1.5 3.5-1.5s2.7.5 3.5 1.5"></path>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v2.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Portaria de Terceiros</h3>
+              <p>Entrada e saída de terceirizados, empresas e equipamentos na portaria, com termo e assinatura.</p>
+            </div>
+          </div>
+          <div class="card-botao botao-destaque-vermelho">
+            <span>Acessar Portaria</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/rh/" class="app-card" title="Acessar Entrevistas com IA (RH)">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-vermelho">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v1.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Entrevistas com IA (RH)</h3>
+              <p>Gravação presencial de entrevistas, transcrição automatizada, resumo estruturado de competências por IA
+                e relatórios do RH.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar RH</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/minmax/" class="app-card" title="Acessar Estoque Mín/Máx">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-laranja">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14"></line>
+                  <line x1="4" y1="10" x2="4" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12" y2="3"></line>
+                  <line x1="20" y1="21" x2="20" y2="16"></line>
+                  <line x1="20" y1="12" x2="20" y2="3"></line>
+                  <line x1="1" y1="14" x2="7" y2="14"></line>
+                  <line x1="9" y1="8" x2="15" y2="8"></line>
+                  <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
+              </div>
+              <span class="status-pill status-online">• Online • v1.0</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Estoque Mín/Máx</h3>
+              <p>Parâmetros de estoque mínimo e máximo do almoxarifado, análise de distorção do MRP, solicitações de
+                ajuste e histórico para a diretoria.</p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar Mín/Máx</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
+        <a href="/escuta/" class="app-card" title="Acessar Jornada da Escuta">
+          <div>
+            <div class="card-topo">
+              <div class="card-icone icone-amarelo">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path
+                    d="M12 8c-.8-1-2.2-1.2-3-.3-.8.8-.7 2.1.2 2.8l2.8 2.5 2.8-2.5c.9-.7 1-2 .2-2.8-.8-.9-2.2-.7-3 .3z"
+                    fill="currentColor"></path>
+                </svg>
+              </div>
+              <span class="status-pill status-teste">• Em teste</span>
+            </div>
+            <div class="card-corpo">
+              <h3>Jornada da Escuta</h3>
+              <p>Conversas individuais entre supervisor e colaborador, com o formulário preenchido a partir do áudio.
+              </p>
+            </div>
+          </div>
+          <div class="card-botao">
+            <span>Acessar Jornada</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </a>
+
       </div>
-      <h1 class="hero-titulo">
-        <span>Hub de Aplicações Industriais</span>
-      </h1>
-      <p class="hero-subtitulo">
-        Plataforma centralizada de acesso aos sistemas de inventário físico, conferência patrimonial, logística de almoxarifado e portaria integrada.
-      </p>
-    </div>
-
-    <div class="grade-sistemas" id="vitrine-sistemas">
-      <!-- Sistema 1: Inventário de Bobinas -->
-      <a href="/bobinas/" class="app-card" title="Acessar Inventário de Bobinas">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="4"></circle>
-              <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
-              <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
-            </svg>
-          </div>
-          <span class="card-tag">/bobinas/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Inventário de Bobinas</h3>
-          <p>Automação e conciliação física de bobinas flexíveis via coletor de dados, câmera e drone com integração SAP.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 2: Imobilizados -->
-      <a href="/imobilizados/" class="app-card" title="Acessar Controle de Imobilizados">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-          </div>
-          <span class="card-tag">/imobilizados/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Controle de Imobilizados</h3>
-          <p>Gestão e auditoria de ativos fixos e bens patrimoniais com rastreamento por centros de custos e placas.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 3: VisionStock (Almox) -->
-      <a href="/visionstock/" class="app-card" title="Acessar VisionStock (Almox)">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-          </div>
-          <span class="card-tag">/visionstock/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>VisionStock (Almox)</h3>
-          <p>Conferência e inventário universal de almoxarifado por SKU com conferência de endereçamento e saldos.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 4: Rateios -->
-      <a href="/rateios/" class="app-card" title="Acessar Rateios">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-            </svg>
-          </div>
-          <span class="card-tag">/rateios/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Rateios Operacionais</h3>
-          <p>Distribuição e controle financeiro de rateios por centros de custos fabris e linhas de produção.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 5: Portaria de Terceiros -->
-      <a href="/terceirizados/" class="app-card" title="Acessar Portaria de Terceiros">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="8.5" cy="7" r="4"></circle>
-              <line x1="20" y1="8" x2="20" y2="14"></line>
-              <line x1="23" y1="11" x2="17" y2="11"></line>
-            </svg>
-          </div>
-          <span class="card-tag">/terceirizados/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Portaria de Terceiros</h3>
-          <p>Registro de entrada e saída de prestadores de serviços, equipamentos corporativos e controle de acessos.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 6: Entrevistas do RH -->
-      <a href="/rh/" class="app-card" title="Acessar Entrevistas com IA (RH)">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <line x1="12" y1="19" x2="12" y2="23"></line>
-              <line x1="8" y1="23" x2="16" y2="23"></line>
-            </svg>
-          </div>
-          <span class="card-tag">/rh/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Entrevistas com IA (RH)</h3>
-          <p>Gravação presencial de entrevistas, transcrição automatizada, resumo estruturado por IA e relatórios do RH.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 7: Estoque Mín/Máx -->
-      <a href="/minmax/" class="app-card" title="Acessar Estoque Mín/Máx">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-          </div>
-          <span class="card-tag">/minmax/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Estoque Mín/Máx</h3>
-          <p>Parâmetros de estoque mínimo e máximo do almoxarifado, análise do MRP, solicitações de ajuste e histórico.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
-
-      <!-- Sistema 8: Jornada da Escuta -->
-      <a href="/escuta/" class="app-card" title="Acessar Jornada da Escuta">
-        <div class="card-topo">
-          <div class="card-icone">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-          </div>
-          <span class="card-tag">/escuta/</span>
-        </div>
-        <div class="card-corpo">
-          <h3>Jornada da Escuta</h3>
-          <p>Conversas individuais entre supervisor e colaborador, com o formulário preenchido a partir do áudio.</p>
-        </div>
-        <div class="card-rodape">
-          <span>Abrir Aplicação</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </div>
-      </a>
     </div>
   </main>
 
-  <footer>
-    Videplast &copy; 2026 · Sistemas Internos de TI &amp; Automação Industrial
+  <footer class="portal-rodape">
+    &copy; 2026 Videplast Indústria de Embalagens Ltda. &bull; Servidor Rio Verde
   </footer>
 
-  <!-- Script que esconde cards dos sistemas que o usuário logado não tem permissão de abrir -->
   <script src="/acesso/portal.js" defer></script>
 </body>
 
