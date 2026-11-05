@@ -65,6 +65,7 @@ class AlteraUsuario(BaseModel):
     email: str | None = None
     setor: str | None = None
     unidade: int | None = None
+    todas_filiais: bool | None = None
     sistemas: list[str] | None = None
 
 
@@ -360,6 +361,8 @@ def eu(request: Request):
         "email": dados.get("email") or "",
         "setor": dados.get("setor") or "",
         "unidade": dados.get("unidade"),
+        # Administrador do Portal sempre vê todas: é ele quem libera as filiais dos outros
+        "todas_filiais": dados["admin"] or dados["todas_filiais"],
         "modo": config.MODO,
         "sistemas": permitidos,
         "todos_caminhos": [s["caminho"] for s in sistemas],
@@ -450,6 +453,9 @@ def alterar_usuario(usuario_id: int, dados: AlteraUsuario, admin=Depends(exige_a
         if dados.unidade is not None:
             con.execute("UPDATE usuarios SET unidade = ? WHERE id = ?", (dados.unidade, usuario_id))
             mudancas.append("unidade")
+        if dados.todas_filiais is not None:
+            con.execute("UPDATE usuarios SET todas_filiais = ? WHERE id = ?", (int(dados.todas_filiais), usuario_id))
+            mudancas.append(f"todas_filiais={'sim' if dados.todas_filiais else 'não'}")
         if dados.admin is not None:
             con.execute("UPDATE usuarios SET admin = ? WHERE id = ?", (int(dados.admin), usuario_id))
             mudancas.append(f"admin={'sim' if dados.admin else 'não'}")

@@ -137,6 +137,7 @@ function desenharMatriz() {
       el('span', {}, s.nome),
       s.aberto ? el('div', { class: 'selo sucesso', style: 'margin-top:4px; font-size:0.68rem;' }, 'Livre') : null,
     )),
+    el('th', { class: 'marca', title: 'Sem esta marca, a pessoa vê só a própria filial' }, 'Todas as filiais'),
     el('th', { class: 'marca' }, 'Admin'),
     el('th', { class: 'marca' }, 'Ativo'),
     el('th', {}, 'Ações'),
@@ -266,6 +267,14 @@ function desenharMatriz() {
       }))),
       el('td', { class: 'marca' }, el('input', {
         type: 'checkbox',
+        'aria-label': `${u.nome} vê todas as filiais`,
+        checked: u.admin || u.todas_filiais,
+        disabled: u.admin,
+        title: u.admin ? 'Administradores veem todas as filiais' : `Liberar todas as filiais para ${u.nome}. Sem esta marca, a pessoa vê só a própria filial.`,
+        onchange: (ev) => alterarUsuario(u, { todas_filiais: ev.target.checked }),
+      })),
+      el('td', { class: 'marca' }, el('input', {
+        type: 'checkbox',
         'aria-label': `${u.nome} é administrador`,
         checked: u.admin,
         disabled: ehProprioUsuario,
@@ -299,7 +308,7 @@ function desenharMatriz() {
 
   if (linhas.length === 0) {
     linhas.push(el('tr', {},
-      el('td', { colspan: sistemas.length + 4, style: 'text-align:center; padding: 28px;' },
+      el('td', { colspan: sistemas.length + 5, style: 'text-align:center; padding: 28px;' },
         el('span', { class: 'suave' }, 'Nenhum colaborador encontrado para os filtros selecionados.'),
       ),
     ));
