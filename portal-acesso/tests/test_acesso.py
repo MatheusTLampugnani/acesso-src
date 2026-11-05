@@ -74,10 +74,10 @@ def test_desativar_derruba_a_sessao(cria_cliente):
     assert c.get("/acesso/api/verificar/rateios").status_code == 200
     joao_cookie = c.cookies.get("portal_sessao")
 
-    c.cookies.set("portal_sessao", admin_cookie)
+    c.cookies.set("portal_sessao", admin_cookie, domain="teste.local")
     assert c.put(f"/acesso/api/usuarios/{operador['id']}", json={"ativo": False}, headers=H).status_code == 200
 
-    c.cookies.set("portal_sessao", joao_cookie)
+    c.cookies.set("portal_sessao", joao_cookie, domain="teste.local")
     assert c.get("/acesso/api/verificar/rateios").status_code == 401
     assert entrar(c, "joao", "senha123").status_code == 401
 

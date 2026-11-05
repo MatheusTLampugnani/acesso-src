@@ -23,7 +23,7 @@
       'display: flex',
       'gap: 12px',
       'align-items: center',
-      'background: rgba(15, 19, 28, 0.92)',
+      'background: rgba(15, 23, 42, 0.95)',
       'backdrop-filter: blur(16px)',
       '-webkit-backdrop-filter: blur(16px)',
       'border: 1px solid rgba(255, 255, 255, 0.12)',
@@ -31,7 +31,7 @@
       'padding: 7px 18px',
       'font: 500 13.5px "Inter", system-ui, -apple-system, sans-serif',
       'color: #f1f5f9',
-      'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5)',
+      'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3)',
       'transition: transform 0.2s ease',
     ].join(';');
 
@@ -42,20 +42,42 @@
 
   const estiloLink = 'color:#60a5fa; text-decoration:none; font-weight:500; transition: color 0.15s ease;';
 
+  async function executarSair(ev) {
+    if (ev) ev.preventDefault();
+    await fetch(BASE + '/api/sair', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-Portal': '1' },
+    });
+    location.href = BASE + '/entrar?volta=/';
+  }
+
   fetch(BASE + '/api/eu', { credentials: 'same-origin' }).then(async (resposta) => {
     let dados = {};
     try {
       dados = await resposta.json();
     } catch { /* json parse error */ }
 
+    const quemEl = document.getElementById('quem');
+    const btnGestao = document.getElementById('btn-gestao');
+    const btnSair = document.getElementById('btn-sair');
+    const btnEntrar = document.getElementById('btn-entrar');
+
     if (resposta.status === 401) {
       if (dados && dados.modo === 'bloquear') {
         location.href = BASE + '/entrar?volta=' + encodeURIComponent(location.pathname);
         return;
       }
-      const div = barra(`<a href="${BASE}/entrar?volta=/" style="${estiloLink}">Entrar no Portal →</a>`);
-      div.onmouseenter = () => div.style.transform = 'translateY(-2px)';
-      div.onmouseleave = () => div.style.transform = 'translateY(0)';
+      if (quemEl) {
+        quemEl.style.display = 'none';
+        if (btnGestao) btnGestao.style.display = 'none';
+        if (btnSair) btnSair.style.display = 'none';
+        if (btnEntrar) btnEntrar.style.display = 'inline-flex';
+      } else {
+        const div = barra(`<a href="${BASE}/entrar?volta=/" style="${estiloLink}">Entrar no Portal →</a>`);
+        div.onmouseenter = () => div.style.transform = 'translateY(-2px)';
+        div.onmouseleave = () => div.style.transform = 'translateY(0)';
+      }
       return;
     }
     if (!resposta.ok) return;
@@ -69,6 +91,23 @@
         elementoCard.style.display = 'none';
       }
     });
+
+    if (quemEl) {
+      quemEl.textContent = `${dados.nome} (${dados.admin ? 'admin' : 'usuário'})`;
+      quemEl.style.display = 'inline-flex';
+      if (btnGestao) {
+        btnGestao.textContent = dados.admin ? 'Gestão de Acessos' : 'Minha Conta';
+        btnGestao.style.display = 'inline-flex';
+      }
+      if (btnSair) {
+        btnSair.style.display = 'inline-flex';
+        btnSair.addEventListener('click', executarSair);
+      }
+      if (btnEntrar) {
+        btnEntrar.style.display = 'none';
+      }
+      return;
+    }
 
     const ponto = document.createElement('span');
     ponto.style.cssText = 'display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; margin-right:8px; box-shadow:0 0 6px rgba(16,185,129,0.7);';
@@ -87,15 +126,7 @@
     div.onmouseenter = () => div.style.transform = 'translateY(-2px)';
     div.onmouseleave = () => div.style.transform = 'translateY(0)';
 
-    div.querySelector('[data-sair]').addEventListener('click', async (ev) => {
-      ev.preventDefault();
-      await fetch(BASE + '/api/sair', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'X-Portal': '1' },
-      });
-      location.href = BASE + '/entrar?volta=/';
-    });
+    div.querySelector('[data-sair]').addEventListener('click', executarSair);
   }).catch(() => {
     /* Portal de acesso fora do ar: a página inicial permanece inalterada sem quebrar */
   });
